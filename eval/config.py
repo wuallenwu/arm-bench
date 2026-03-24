@@ -1,0 +1,122 @@
+"""
+eval/config.py — Configuration loader for the simd-loops benchmark.
+
+Reads eval_config.json (or eval_config.json.example) and exposes helpers
+for loading problem metadata and baseline timings.
+"""
+
+import json
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).parent.parent
+EVAL_CONFIG_PATH = REPO_ROOT / "eval" / "eval_config.json"
+DATASET_PATH = REPO_ROOT / "dataset"
+PROBLEMS_JSON = DATASET_PATH / "problems.json"
+BASELINES_DIR = REPO_ROOT / "baselines"
+
+# ISA → instance tier mapping
+ISA_TIER = {
+    "neon": "c7g",
+    "sve": "c7g",
+    "sve2": "c7g",
+    "sme2": "c8g",
+}
+
+# ISA → make target name
+ISA_MAKE_TARGET = {
+    "neon": "neon",
+    "sve": "sve",
+    "sve2": "sve2",
+    "sme2": "sme2",
+}
+
+# ISA → human-readable instance description for prompts
+ISA_INSTANCE_DESC = {
+    "neon": "Arm Neoverse V1 (AWS Graviton3, NEON 128-bit)",
+    "sve": "Arm Neoverse V1 (AWS Graviton3, SVE 256-bit)",
+    "sve2": "Arm Neoverse V1 (AWS Graviton3, SVE2 256-bit)",
+    "sme2": "Arm Neoverse V2 (AWS Graviton4, SME2 128-bit)",
+}
+
+
+def load_config() -> dict:
+    """Load eval_config.json. Raises if not found."""
+    if not EVAL_CONFIG_PATH.exists():
+        raise FileNotFoundError(
+            f"eval_config.json not found at {EVAL_CONFIG_PATH}\n"
+            f"Copy eval_config.json.example to eval_config.json and fill in your instance IPs,\n"
+            f"or run: python eval/provision.py --instance c7g.large"
+        )
+    return json.loads(EVAL_CONFIG_PATH.read_text())
+
+
+def load_problems(with_code: bool = True) -> dict:
+    """
+    Load dataset/problems.json. Returns dict keyed by problem ID.
+
+    Args:
+        with_code: If True, also load struct_def and scalar_code from
+                   each problem's problem.py (needed by evaluator/generate_samples).
+    """
+    if not PROBLEMS_JSON.exists():
+        raise FileNotFoundError(
+            f"problems.json not found. Run: python scripts/extract_dataset.py"
+        )
+    problems = json.loads(PROBLEMS_JSON.read_text())
+    result = {p["id"]: p for p in problems}
+
+    if with_code:
+        for pid, meta in result.items():
+            dir_name = meta.get("dir_name", "")
+            problem_py = DATASET_PATH / "problems" / dir_name / "problem.py"
+            if not problem_py.exists():
+                continue
+            # Parse SCALAR_CODE and STRUCT_DEF from problem.py as raw text
+            text = problem_py.read_text()
+
+            struct_m = _extract_triple_quoted(text, "STRUCT_DEF")
+            scalar_m = _extract_triple_quoted(text, "SCALAR_CODE")
+            if struct_m:
+                meta["struct_def"] = struct_m.strip()
+            if scalar_m:
+                meta["scalar_code"] = scalar_m.strip()
+
+    return result
+
+
+def _extract_triple_quoted(text: str, var_name: str) -> str | None:
+    """Extract the content of a triple-quoted r-string variable from Python source."""
+    import re
+    # Match: VAR_NAME = r"""\n...\n"""
+    pattern = re.compile(
+        rf'{var_name}\s*=\s*r"""(.*?)"""',
+        re.DOTALL,
+    )
+    m = pattern.search(text)
+    return m.group(1) if m else None
+
+
+def load_baselines(tier: str) -> dict:
+    """
+    Load baselines/{tier}.json. Returns dict:
+      { "loop_001": { "scalar_ms": 156.3, "autovec_ms": 42.1 }, ... }
+    """
+    path = BASELINES_DIR / f"{tier}.json"
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text())
+
+
+def problem_path(problem_id: str) -> Path:
+    """Return the path to a problem directory, e.g. dataset/problems/loop_001_saxpy/"""
+    problems = load_problems()
+    if problem_id not in problems:
+        raise KeyError(f"Problem {problem_id!r} not found in problems.json")
+    meta = problems[problem_id]
+    return DATASET_PATH / "problems" / meta["dir_name"]
+
+
+def loop_source_path(problem_id: str) -> Path:
+    """Return the path to the original loop_NNN.c source file."""
+    loop_num = problem_id.split("_")[1]  # "loop_001" → "001"
+    return REPO_ROOT / "loops" / f"loop_{loop_num}.c"

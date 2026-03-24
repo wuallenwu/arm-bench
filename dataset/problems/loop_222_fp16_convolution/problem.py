@@ -1,0 +1,61 @@
+"""
+loop_222: FP16 convolution
+
+Purpose: Use of mutli-vector LD and f16 MLA instructions
+
+ISA target: SME2 on Arm Neoverse V2 (AWS Graviton4, SME2 128-bit)
+"""
+
+METADATA = {
+    "id": "loop_222",
+    "num": "222",
+    "name": "FP16 convolution",
+    "description": "Use of mutli-vector LD and f16 MLA instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_222_fp16_convolution",
+    "tags": ['sme2', 'streaming', 'fp16'],
+}
+
+# Data struct definition — shown to the LLM for context
+STRUCT_DEF = r"""
+struct loop_222_data {
+  uint64_t m;
+  uint64_t n;
+  uint64_t k;
+  float16_t *restrict kernel;
+  float16_t *restrict values;
+  float16_t *restrict buffer;
+  float16_t *restrict result;
+};
+"""
+
+# Scalar reference implementation — the LLM's task is to optimize this
+SCALAR_CODE = r"""
+#define LOOP_ATTR
+#define OUTER_LOOP_ATTR
+"""
+
+# Prompt template (used by generate_samples.py and run_benchmark.py)
+SYSTEM_PROMPT = """You are an expert AArch64 SIMD programmer. Your task is to write an optimized
+implementation of a given loop kernel for {isa_desc}.
+Preserve the exact function signature. The `res` checksum field must match
+the scalar output. Output only the C function — no markdown, no explanation.
+"""
+
+USER_PROMPT_TEMPLATE = """Problem: FP16 convolution
+Purpose: Use of mutli-vector LD and f16 MLA instructions
+Target: {isa_upper} on {isa_desc}
+
+Struct definition:
+```c
+{struct_def}
+```
+
+Scalar implementation to optimize:
+```c
+{scalar_code}
+```
+
+Write an optimized {isa_upper} implementation. Output only the C function.
+"""

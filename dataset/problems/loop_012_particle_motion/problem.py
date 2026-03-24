@@ -1,0 +1,79 @@
+"""
+loop_012: Particle motion
+
+Purpose: Use of FP compare instructions
+
+ISA target: SVE2 on Arm Neoverse V1 (AWS Graviton3, SVE2 256-bit)
+"""
+
+METADATA = {
+    "id": "loop_012",
+    "num": "012",
+    "name": "Particle motion",
+    "description": "Use of FP compare instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_012_particle_motion",
+    "tags": ['sve2'],
+}
+
+# Data struct definition — shown to the LLM for context
+STRUCT_DEF = r"""
+struct loop_012_data {
+  int64_t step;
+  double direction[3];
+  int64_t magnitude[3];
+  double *restrict vx;
+  double *restrict vy;
+  double *restrict vz;
+  double *restrict nx;
+  double *restrict ny;
+  double *restrict nz;
+  uint64_t n;
+};
+"""
+
+# Scalar reference implementation — the LLM's task is to optimize this
+SCALAR_CODE = r"""
+static void inner_loop_012(struct loop_012_data *restrict data) {
+  int64_t step = data->step;
+  double *direction = data->direction;
+  int64_t *magnitude = data->magnitude;
+  double *vx = data->vx;
+  double *vy = data->vy;
+  double *vz = data->vz;
+  double *nx = data->nx;
+  double *ny = data->ny;
+  double *nz = data->nz;
+  uint64_t n = data->n;
+
+  for (int p = 0; p < n; p++) {
+    nx[p] = next_pos(step, direction[0], magnitude[0], vx[p]);
+    ny[p] = next_pos(step, direction[1], magnitude[1], vy[p]);
+    nz[p] = next_pos(step, direction[2], magnitude[2], vz[p]);
+  }
+"""
+
+# Prompt template (used by generate_samples.py and run_benchmark.py)
+SYSTEM_PROMPT = """You are an expert AArch64 SIMD programmer. Your task is to write an optimized
+implementation of a given loop kernel for {isa_desc}.
+Preserve the exact function signature. The `res` checksum field must match
+the scalar output. Output only the C function — no markdown, no explanation.
+"""
+
+USER_PROMPT_TEMPLATE = """Problem: Particle motion
+Purpose: Use of FP compare instructions
+Target: {isa_upper} on {isa_desc}
+
+Struct definition:
+```c
+{struct_def}
+```
+
+Scalar implementation to optimize:
+```c
+{scalar_code}
+```
+
+Write an optimized {isa_upper} implementation. Output only the C function.
+"""

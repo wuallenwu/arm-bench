@@ -1,0 +1,1017 @@
+[
+  {
+    "id": "loop_001",
+    "num": "001",
+    "name": "FP32 inner product",
+    "description": "Use of fp32 MLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_001_fp32_inner_product",
+    "tags": [
+      "sve2",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_002",
+    "num": "002",
+    "name": "UINT32 inner product",
+    "description": "Use of u32 MLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_002_uint32_inner_product",
+    "tags": [
+      "sve2",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_003",
+    "num": "003",
+    "name": "FP64 inner product",
+    "description": "Use of fp64 MLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_003_fp64_inner_product",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_004",
+    "num": "004",
+    "name": "UINT64 inner product",
+    "description": "Use of u64 MLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_004_uint64_inner_product",
+    "tags": [
+      "sve2",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_005",
+    "num": "005",
+    "name": "strlen short strings",
+    "description": "Use of FF and NF loads instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_005_strlen_short_strings",
+    "tags": [
+      "sve2",
+      "string"
+    ]
+  },
+  {
+    "id": "loop_006",
+    "num": "006",
+    "name": "strlen long strings",
+    "description": "Use of FF and NF loads instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_006_strlen_long_strings",
+    "tags": [
+      "sve2",
+      "string"
+    ]
+  },
+  {
+    "id": "loop_008",
+    "num": "008",
+    "name": "Precise fp64 add reduction",
+    "description": "Use of FADDA instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_008_precise_fp64_add_reduction",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_009",
+    "num": "009",
+    "name": "Pointer chasing",
+    "description": "Use of CTERM and BRK instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_009_pointer_chasing",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_010",
+    "num": "010",
+    "name": "Conditional reduction (fp)",
+    "description": "Use of CLAST (SIMD&FP scalar) instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_010_conditional_reduction_fp",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_012",
+    "num": "012",
+    "name": "Particle motion",
+    "description": "Use of FP compare instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_012_particle_motion",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_019",
+    "num": "019",
+    "name": "Mark objects",
+    "description": "Use of scatters store instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_019_mark_objects",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_022",
+    "num": "022",
+    "name": "TCP checksum",
+    "description": "Use of simd instructions for misaligned accesses",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_022_tcp_checksum",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_023",
+    "num": "023",
+    "name": "Conjugate Gradient",
+    "description": "Use of gathers load instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_023_conjugate_gradient",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_024",
+    "num": "024",
+    "name": "Sum of abs diffs",
+    "description": "Use of DOT instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_024_sum_of_abs_diffs",
+    "tags": [
+      "sve2",
+      "dot-product"
+    ]
+  },
+  {
+    "id": "loop_025",
+    "num": "025",
+    "name": "FP32 small matrix-matrix multiply",
+    "description": "Use of fp32 indexed MLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_025_fp32_small_matrix_matrix_multiply",
+    "tags": [
+      "sve2",
+      "matmul",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_026",
+    "num": "026",
+    "name": "Convert UTF-16 to chars",
+    "description": "Use of gathers load instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_026_convert_utf_16_to_chars",
+    "tags": [
+      "sve2",
+      "string"
+    ]
+  },
+  {
+    "id": "loop_027",
+    "num": "027",
+    "name": "FP32 square root",
+    "description": "Use of FSQRT instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_027_fp32_square_root",
+    "tags": [
+      "sve2",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_028",
+    "num": "028",
+    "name": "FP64 fast division",
+    "description": "Use of FRECPE and FRECPS instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_028_fp64_fast_division",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_029",
+    "num": "029",
+    "name": "FP64 multiply by power of 2",
+    "description": "Use of FSCALE instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_029_fp64_multiply_by_power_of_2",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_031",
+    "num": "031",
+    "name": "small-lengths inline memcpy test",
+    "description": "Use of simd-based memcpy for small lengths and at varied alignments",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_031_small_lengths_inline_memcpy_test",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_032",
+    "num": "032",
+    "name": "FP64 banded linear equations",
+    "description": "Use of strided gather and INC instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_032_fp64_banded_linear_equations",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_033",
+    "num": "033",
+    "name": "FP64 Inner product",
+    "description": "Use of a tight loop with INC and WHILE instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_033_fp64_inner_product",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_034",
+    "num": "034",
+    "name": "Short string compares",
+    "description": "Use of FFR for strcmp",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_034_short_string_compares",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_035",
+    "num": "035",
+    "name": "Array addition",
+    "description": "Use of WHILE for loop control",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_035_array_addition",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_036",
+    "num": "036",
+    "name": "Sparse matrix Gauss Step",
+    "description": "Use of gather-based matrix processing",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_036_sparse_matrix_gauss_step",
+    "tags": [
+      "sve2",
+      "matmul"
+    ]
+  },
+  {
+    "id": "loop_037",
+    "num": "037",
+    "name": "FP32 complex vector product",
+    "description": "Use of fp32 FCMLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_037_fp32_complex_vector_product",
+    "tags": [
+      "sve2",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_038",
+    "num": "038",
+    "name": "Fp16 convolution",
+    "description": "Use of fp16 multiply-add instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_038_fp16_convolution",
+    "tags": [
+      "sve2",
+      "fp16"
+    ]
+  },
+  {
+    "id": "loop_040",
+    "num": "040",
+    "name": "Clamp operation",
+    "description": "Use of simd clamp (or min, max and shift) instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_040_clamp_operation",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_101",
+    "num": "101",
+    "name": "Upscale filter",
+    "description": "Use of top/bottom instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_101_upscale_filter",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_102",
+    "num": "102",
+    "name": "General histogram",
+    "description": "Use of HISTCNT instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_102_general_histogram",
+    "tags": [
+      "sve2",
+      "histogram"
+    ]
+  },
+  {
+    "id": "loop_103",
+    "num": "103",
+    "name": "whitespace",
+    "description": "Use of MATCH and NMATCH instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_103_whitespace",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_104",
+    "num": "104",
+    "name": "Byte historgram",
+    "description": "Use of HISTSEG instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_104_byte_historgram",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_105",
+    "num": "105",
+    "name": "Cascade summation",
+    "description": "Use of pairwise FP add instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_105_cascade_summation",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_106",
+    "num": "106",
+    "name": "Sheep and goats",
+    "description": "Use of BGRP instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_106_sheep_and_goats",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_107",
+    "num": "107",
+    "name": "UINT128 multiply",
+    "description": "Use of ADCL[B/T] instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_107_uint128_multiply",
+    "tags": [
+      "sve2",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_108",
+    "num": "108",
+    "name": "Pixel manipulation",
+    "description": "Use of LD4 with shift-accumulate instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_108_pixel_manipulation",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_109",
+    "num": "109",
+    "name": "UINT32 complex addition",
+    "description": "Use of u32 CADD instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_109_uint32_complex_addition",
+    "tags": [
+      "sve2",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_110",
+    "num": "110",
+    "name": "UINT32 complex dot",
+    "description": "Use of u32 CDOT instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_110_uint32_complex_dot",
+    "tags": [
+      "sve2",
+      "dot-product",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_111",
+    "num": "111",
+    "name": "FP64 overflow handling",
+    "description": "Use of FLOGB and FSCALE instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_111_fp64_overflow_handling",
+    "tags": [
+      "sve2",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_112",
+    "num": "112",
+    "name": "UINT32 complex MAC",
+    "description": "Use of CMLA instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_112_uint32_complex_mac",
+    "tags": [
+      "sve2",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_113",
+    "num": "113",
+    "name": "UINT32 Pairs addition",
+    "description": "Use of u32 ADDP",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_113_uint32_pairs_addition",
+    "tags": [
+      "sve2",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_114",
+    "num": "114",
+    "name": "Auto-correlation",
+    "description": "Use of shifts, widening mult and load-replicate instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_114_auto_correlation",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_120",
+    "num": "120",
+    "name": "Insertion sort",
+    "description": "Use of CMPLT instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_120_insertion_sort",
+    "tags": [
+      "sve2",
+      "sort"
+    ]
+  },
+  {
+    "id": "loop_121",
+    "num": "121",
+    "name": "Quicksort",
+    "description": "Use of CMPLT with COMPACT and CNTP instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_121_quicksort",
+    "tags": [
+      "sve2",
+      "sort"
+    ]
+  },
+  {
+    "id": "loop_122",
+    "num": "122",
+    "name": "Odd-Even transposition sort",
+    "description": "Use of CMPLT with SEL instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_122_odd_even_transposition_sort",
+    "tags": [
+      "sve2",
+      "sort"
+    ]
+  },
+  {
+    "id": "loop_123",
+    "num": "123",
+    "name": "Bitonic mergesort",
+    "description": "Use of CMPGT with SEL instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_123_bitonic_mergesort",
+    "tags": [
+      "sve2",
+      "sort"
+    ]
+  },
+  {
+    "id": "loop_124",
+    "num": "124",
+    "name": "Radix sort",
+    "description": "Use of simd instructions in radix sort",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_124_radix_sort",
+    "tags": [
+      "sve2",
+      "sort"
+    ]
+  },
+  {
+    "id": "loop_126",
+    "num": "126",
+    "name": "conditional update",
+    "description": "Use of simd loop with conditional update",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_126_conditional_update",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_127",
+    "num": "127",
+    "name": "loop early exit",
+    "description": "Use of simd loop with early exit",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_127_loop_early_exit",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_128",
+    "num": "128",
+    "name": "alias in contiguous access",
+    "description": "Use of simd loop with possible alias in contiguous mem access",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_128_alias_in_contiguous_access",
+    "tags": [
+      "sve2"
+    ]
+  },
+  {
+    "id": "loop_130",
+    "num": "130",
+    "name": "FP32 matrix-matrix multiply using",
+    "description": "Use of fp32 MMLA instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_130_fp32_matrix_matrix_multiply_using",
+    "tags": [
+      "sve2",
+      "matmul",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_135",
+    "num": "135",
+    "name": "INT8-INT32 matrix-matrix multiply using MMLA",
+    "description": "Use of i8 to i32 MMLA instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_135_int8_int32_matrix_matrix_multiply_using_",
+    "tags": [
+      "sve2",
+      "matmul",
+      "int8"
+    ]
+  },
+  {
+    "id": "loop_136",
+    "num": "136",
+    "name": "INT4-INT32 matrix-matrix multiply using MMLA",
+    "description": "Use of 4-bit dequantization (LUT) with i8 to i32 MMLA instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_136_int4_int32_matrix_matrix_multiply_using_",
+    "tags": [
+      "sve2",
+      "matmul"
+    ]
+  },
+  {
+    "id": "loop_137",
+    "num": "137",
+    "name": "BF16-FP32 matrix-matrix multiply using MMLA",
+    "description": "Use of bf16 to fp32 MMLA instructions",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_137_bf16_fp32_matrix_matrix_multiply_using_m",
+    "tags": [
+      "sve2",
+      "matmul",
+      "fp32",
+      "bf16"
+    ]
+  },
+  {
+    "id": "loop_201",
+    "num": "201",
+    "name": "FP64 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of fp64 MOPA (or MLA) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_201_fp64_matrix_matrix_multiply_using_mopa_d",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_202",
+    "num": "202",
+    "name": "FP32 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of fp32 MOPA (or MLA) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_202_fp32_matrix_matrix_multiply_using_mopa_d",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_204",
+    "num": "204",
+    "name": "FP16 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of fp16 to fp16 MOPA (or MLA) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_204_fp16_matrix_matrix_multiply_using_mopa_d",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "fp16"
+    ]
+  },
+  {
+    "id": "loop_205",
+    "num": "205",
+    "name": "INT8-INT32 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of i8 to i32 MOPA (or DOT) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_205_int8_int32_matrix_matrix_multiply_using_",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "int8"
+    ]
+  },
+  {
+    "id": "loop_206",
+    "num": "206",
+    "name": "INT16-INT64 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of i16 to i64 MOPA (or DOT) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_206_int16_int64_matrix_matrix_multiply_using",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product"
+    ]
+  },
+  {
+    "id": "loop_207",
+    "num": "207",
+    "name": "INT1-INT32 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of 1-bit MOPA instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_207_int1_int32_matrix_matrix_multiply_using_",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product"
+    ]
+  },
+  {
+    "id": "loop_208",
+    "num": "208",
+    "name": "BF16-BF16 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of bf16 to bf16 MOPA (or MLA) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_208_bf16_bf16_matrix_matrix_multiply_using_m",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "bf16"
+    ]
+  },
+  {
+    "id": "loop_210",
+    "num": "210",
+    "name": "BF16-FP32 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of bf16 to fp32 MOPA (or DOT) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_210_bf16_fp32_matrix_matrix_multiply_using_m",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "fp32",
+      "bf16"
+    ]
+  },
+  {
+    "id": "loop_211",
+    "num": "211",
+    "name": "INT16-INT32 matrix-matrix multiply using MOPA / DOT",
+    "description": "Use of i16 to i32 MOPA (or DOT) instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_211_int16_int32_matrix_matrix_multiply_using",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product"
+    ]
+  },
+  {
+    "id": "loop_212",
+    "num": "212",
+    "name": "4-bit-FP32 col-major interleaved matrix-vector multiply",
+    "description": "Use of 4-bit dequantization (LUT) and DOT instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_212_4_bit_fp32_col_major_interleaved_matrix_",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_215",
+    "num": "215",
+    "name": "UINT8-UINT32 col-major interleaved matrix-vector multiply",
+    "description": "Use of u8 to u32 DOT instruction",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_215_uint8_uint32_col_major_interleaved_matri",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "int8",
+      "uint"
+    ]
+  },
+  {
+    "id": "loop_216",
+    "num": "216",
+    "name": "FP32 col-major matrix-vector multiply",
+    "description": "Use of fp32 MLA instruction",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_216_fp32_col_major_matrix_vector_multiply",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_217",
+    "num": "217",
+    "name": "INT8-INT32 row-major matrix-vector multiply",
+    "description": "Use of i8 to i32 DOT and ADDV instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_217_int8_int32_row_major_matrix_vector_multi",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "int8"
+    ]
+  },
+  {
+    "id": "loop_218",
+    "num": "218",
+    "name": "FP64 col-major matrix-vector multiply",
+    "description": "Use of fp64 MLA instruction",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_218_fp64_col_major_matrix_vector_multiply",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_219",
+    "num": "219",
+    "name": "INT8-INT32 col-major matrix-vector multiply",
+    "description": "Use of i8 to i32 VDOT instruction",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_219_int8_int32_col_major_matrix_vector_multi",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "int8"
+    ]
+  },
+  {
+    "id": "loop_220",
+    "num": "220",
+    "name": "FP32 row-major matrix-vector multiply",
+    "description": "Use of fp32 MLA and ADDV instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_220_fp32_row_major_matrix_vector_multiply",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "fp32"
+    ]
+  },
+  {
+    "id": "loop_221",
+    "num": "221",
+    "name": "FP64 row-major matrix-vector multiply",
+    "description": "Use of fp64 MLA and ADDV instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_221_fp64_row_major_matrix_vector_multiply",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "fp64"
+    ]
+  },
+  {
+    "id": "loop_222",
+    "num": "222",
+    "name": "FP16 convolution",
+    "description": "Use of mutli-vector LD and f16 MLA instructions",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_222_fp16_convolution",
+    "tags": [
+      "sme2",
+      "streaming",
+      "fp16"
+    ]
+  },
+  {
+    "id": "loop_223",
+    "num": "223",
+    "name": "Matrix transposition",
+    "description": "Use of simd instructions (LD & ST ZA, LD & ZIP) in transposition",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_223_matrix_transposition",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul"
+    ]
+  },
+  {
+    "id": "loop_231",
+    "num": "231",
+    "name": "BF16-FP32 col-major interleaved matrix-vector multiply",
+    "description": "Use of bf16 to fp32 DOT instruction",
+    "isa_target": "sve2",
+    "instance_type": "c7g.large",
+    "dir_name": "loop_231_bf16_fp32_col_major_interleaved_matrix_v",
+    "tags": [
+      "sve2",
+      "matmul",
+      "dot-product",
+      "fp32",
+      "bf16"
+    ]
+  },
+  {
+    "id": "loop_245",
+    "num": "245",
+    "name": "INT8-INT32 matrix-matrix multiply with rearrangement",
+    "description": "Use of MOPA, DOT & MMLA instructions with matrix rearrangements",
+    "isa_target": "sme2",
+    "instance_type": "c8g.large",
+    "dir_name": "loop_245_int8_int32_matrix_matrix_multiply_with_r",
+    "tags": [
+      "sme2",
+      "streaming",
+      "matmul",
+      "dot-product",
+      "int8"
+    ]
+  }
+]
