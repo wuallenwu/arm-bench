@@ -48,6 +48,8 @@ static void inner_loop_201(struct loop_201_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -61,6 +63,8 @@ static void inner_loop_201(struct loop_201_data *restrict data) {
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
 #endif
+
+#if !defined(HAVE_CANDIDATE)
 
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 
@@ -830,6 +834,7 @@ static void inner_loop_201(struct loop_201_data *data) {
 }
 
 #endif
+#endif /* !HAVE_CANDIDATE */
 
 
 // Ensure the max SVL that will be targetted is defined

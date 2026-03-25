@@ -44,6 +44,8 @@ static void inner_loop_222(struct loop_222_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -62,11 +64,14 @@ static void inner_loop_222(struct loop_222_data *restrict data) {
 #endif
 
 
+
+
 // Each row is zero-padded on both ends in order to simplify boundary logic
 // Each pair of consecutive rows share padding so as to reduce memory usage
 #define IMAGE_BORDER(k)     ((k) / 2)
 #define IMAGE_STRIDE(k,n)   ((n) + (k) - IMAGE_BORDER(k))
 
+#if !defined(HAVE_CANDIDATE)
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define CONVOLVE_INC_ROWS   4
 #define CONVOLVE_INC_COLS   1
@@ -444,6 +449,7 @@ LOOP_ATTR
     dst += row_inc * image_width;
   }
 }
+#endif /* !HAVE_CANDIDATE */
 
 // Reference implementation (scalar, per-pixel)
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))

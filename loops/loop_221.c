@@ -46,6 +46,8 @@ static void inner_loop_221(struct loop_221_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -59,6 +61,8 @@ static void inner_loop_221(struct loop_221_data *restrict data) {
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
 #endif
+
+#if !defined(HAVE_CANDIDATE)
 
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 
@@ -708,6 +712,7 @@ static void inner_loop_221(struct loop_221_data *data) {
 #undef PROBLEM_SIZE_LIMIT_KIB
 #define PROBLEM_SIZE_LIMIT_KIB 257
 #endif
+#endif /* !HAVE_CANDIDATE */
 
 // Actual input buffer memory footprint in bytes
 #define PROBLEM_SIZE_ACTUAL(m,n) ((n)*((m)+1)*sizeof(float64_t))

@@ -25,9 +25,6 @@ struct loop_031_data {
 
 #define LOOP_ATTR SC_SVE_ATTR
 
-static size_t count[] = {0,  1,  2,  3,  4,  5,   6,   7,   8,   15,
-                         16, 31, 64, 80, 96, 127, 128, 200, 255, 512};
-
 #if defined(HAVE_CANDIDATE)
 // CANDIDATE_INJECT_START
 static void inner_loop_031(struct loop_031_data *restrict data) {
@@ -117,6 +114,10 @@ static void inline_memcpy(uint8_t *restrict dst, uint8_t *restrict src,
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+static size_t count[] = {0,  1,  2,  3,  4,  5,   6,   7,   8,   15,
+                         16, 31, 64, 80, 96, 127, 128, 200, 255, 512};
+
 #define CHUNKS 20
 
 static void inner_loop_031(struct loop_031_data *restrict input)
@@ -138,6 +139,7 @@ LOOP_ATTR
     }
   }
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 15600
 

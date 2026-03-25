@@ -60,6 +60,8 @@ LOOP_ATTR
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 
 static float NOINLINE cascade_summation(float *restrict a, float *restrict b,
@@ -225,6 +227,7 @@ LOOP_ATTR
   int n = input->n;
   input->res = cascade_summation(a, b, n);
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 4096  // Must be a power of two
 

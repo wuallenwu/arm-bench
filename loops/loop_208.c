@@ -37,7 +37,7 @@ struct loop_208_data {
   bfloat16_t *restrict c;
 };
 
-static inline bfloat16_t bf16_mla(bfloat16_t c, bfloat16_t a, bfloat16_t b) {
+static inline __attribute__((unused)) bfloat16_t bf16_mla(bfloat16_t c, bfloat16_t a, bfloat16_t b) {
   return f32_to_bf16((bf16_to_f32(a) * bf16_to_f32(b)) + bf16_to_f32(c));
 }
 
@@ -48,6 +48,8 @@ static void inner_loop_208(struct loop_208_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -64,6 +66,8 @@ static void inner_loop_208(struct loop_208_data *restrict data) {
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
 #endif
+
+#if !defined(HAVE_CANDIDATE)
 
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 
@@ -509,6 +513,7 @@ static void inner_loop_208(struct loop_208_data *data) {
 #undef  PROBLEM_SIZE_LIMIT_KIB
 #define PROBLEM_SIZE_LIMIT_KIB 128
 #endif
+#endif /* !HAVE_CANDIDATE */
 
 // Actual input buffer memory footprint in bytes
 #define PROBLEM_SIZE_ACTUAL(m,n,k) ((k)*((m)+(n))*sizeof(bfloat16_t))

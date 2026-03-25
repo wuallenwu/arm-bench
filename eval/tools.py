@@ -162,8 +162,13 @@ class SIMDTools:
             os.unlink(tmp_path)
 
         # 2. Compile with HAVE_CANDIDATE flag
+        # Remove stale object/symlink for this loop so make doesn't fail on
+        # "ln: File exists" when the previous build was interrupted mid-way.
+        obj_base = f"{self.remote_root}/build/{self.make_target}/_obj"
         make_cmd = (
             f"cd {self.remote_root} && "
+            f"rm -f {obj_base}/loops/loop_{self.loop_num}.o "
+            f"       {obj_base}/_lnk/loop_{self.loop_num}.o && "
             f"make {self.make_target} "
             f"EXTRA_FLAGS='-DHAVE_CANDIDATE' "
             f"2>&1"
@@ -246,8 +251,13 @@ class SIMDTools:
             return PerfResult(raw_output="No compiled binary — run compile() first.")
 
         loop_hex = int(self.loop_num)
+        # The kernel-versioned perf binary under /usr/lib has PMU support on
+        # Graviton.  Probe for the first one that exists; fall back to the
+        # system 'perf' wrapper (which may warn but still work).
         perf_cmd = (
-            f"perf stat "
+            f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
+            f"PERF=${{PERF:-perf}}; "
+            f"sudo $PERF stat "
             f"-e cycles,instructions,r04,r03 "
             f"{self.remote_binary} -k {loop_hex} -n {n} "
             f"2>&1"
@@ -295,18 +305,28 @@ class SIMDTools:
         if not self._last_compile_ok:
             return DisasmResult(asm="No compiled binary — run compile() first.")
 
-        if fn:
-            # Extract just this function: print from "<fn>:" until next "<...>:" line
-            objdump_cmd = (
+        def _objdump_fn(name: str) -> str:
+            return (
                 f"llvm-objdump-18 -d {self.remote_binary} "
-                f"| awk '/<{fn}>:/ {{p=1}} p && /<[a-zA-Z_].*>:/ && !/<{fn}>:/ {{p=0}} p'"
+                f"| awk '/<{name}>:/ {{p=1}} p && /<[a-zA-Z_].*>:/ && !/<{name}>:/ {{p=0}} p'"
             )
-        else:
-            objdump_cmd = f"llvm-objdump-18 -d {self.remote_binary}"
 
-        rc, output, stderr = self.handle.run(objdump_cmd, timeout=60)
-        if rc != 0:
-            return DisasmResult(asm=f"objdump failed: {stderr}")
+        if fn:
+            rc, output, stderr = self.handle.run(_objdump_fn(fn), timeout=60)
+            if rc != 0:
+                return DisasmResult(asm=f"objdump failed: {stderr}")
+            # If the requested symbol was inlined, fall back to the outer loop wrapper
+            if not output.strip():
+                fallback = f"loop_{self.loop_num}"
+                rc, output, stderr = self.handle.run(_objdump_fn(fallback), timeout=60)
+                if rc != 0:
+                    return DisasmResult(asm=f"objdump failed: {stderr}")
+        else:
+            rc, output, stderr = self.handle.run(
+                f"llvm-objdump-18 -d {self.remote_binary}", timeout=60
+            )
+            if rc != 0:
+                return DisasmResult(asm=f"objdump failed: {stderr}")
 
         # Truncate to first 500 lines to avoid flooding context
         lines = output.splitlines()

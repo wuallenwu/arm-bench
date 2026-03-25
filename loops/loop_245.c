@@ -46,6 +46,8 @@ static void inner_loop_245(struct loop_245_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -60,11 +62,14 @@ static void inner_loop_245(struct loop_245_data *restrict data) {
 #define OUTER_LOOP_ATTR
 #endif
 
+
+
 static inline int32_t int8_to_int32(uint64_t i, uint64_t j, uint64_t k,
                                     struct loop_245_data *data) {
   return (int32_t)(data->a[k * data->m + i] * data->b[k * data->n + j]);
 }
 
+#if !defined(HAVE_CANDIDATE)
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 static void inner_loop_245(struct loop_245_data *data) {
   uint64_t m = data->m;
@@ -1455,6 +1460,7 @@ static void inner_loop_245(struct loop_245_data *data) {
 #undef PROBLEM_SIZE_LIMIT_KIB
 #define PROBLEM_SIZE_LIMIT_KIB 197
 #endif
+#endif /* !HAVE_CANDIDATE */
 
 // Actual input buffer memory footprint in bytes
 #define PROBLEM_SIZE_ACTUAL(m, n, k) ((k) * ((m) + (n)) * sizeof(int8_t))

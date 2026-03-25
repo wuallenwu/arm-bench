@@ -100,6 +100,8 @@ static void inner_loop_102(struct loop_102_data *data) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 static void inner_loop_102(struct loop_102_data *restrict input) {
   uint32_t *histogram = input->histogram;
   uint64_t histogram_size = input->histogram_size;
@@ -109,6 +111,7 @@ static void inner_loop_102(struct loop_102_data *restrict input) {
   memset(histogram, 0, histogram_size);
   update(histogram, records, num_records);
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define MAX_VAL 100
 #define SIZE 10000

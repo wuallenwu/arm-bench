@@ -44,6 +44,8 @@ static void inner_loop_202(struct loop_202_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -61,9 +63,12 @@ static void inner_loop_202(struct loop_202_data *restrict data) {
 #define OUTER_LOOP_ATTR
 #endif
 
+
+
 void matmul_fp32(uint64_t, uint64_t, uint64_t, float *restrict, float *restrict,
                  float *restrict) LOOP_ATTR;
 
+#if !defined(HAVE_CANDIDATE)
 static void inner_loop_202(struct loop_202_data *data)
 LOOP_ATTR
 {
@@ -75,6 +80,7 @@ defined(__ARM_FEATURE_SVE) || defined(__ARM_NEON)
   exit(2);
 #endif
 }
+#endif /* !HAVE_CANDIDATE */
 
 
 // Ensure the max SVL that will be targetted is defined

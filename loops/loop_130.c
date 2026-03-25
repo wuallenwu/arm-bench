@@ -37,7 +37,7 @@ struct loop_130_data {
   float32_t *restrict c;
 };
 
-static inline float32_t fp32_dot2(uint64_t x, uint64_t y, uint64_t z,
+static inline __attribute__((unused)) float32_t fp32_dot2(uint64_t x, uint64_t y, uint64_t z,
                                   struct loop_130_data *data) {
   float32_t const *a = &data->a[z * data->m + y * 2];
   float32_t const *b = &data->b[z * data->n + x * 2];

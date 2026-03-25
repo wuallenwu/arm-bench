@@ -524,6 +524,8 @@ void NOINLINE update(uint32_t *restrict histogram, uint8_t *data, int n) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 static void inner_loop_104(struct loop_104_data *restrict input) {
   uint32_t *histogram = input->histogram;
   uint64_t histogram_size = input->histogram_size;
@@ -533,6 +535,7 @@ static void inner_loop_104(struct loop_104_data *restrict input) {
   memset(histogram, 0, histogram_size);
   update(histogram, data, n);
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 256
 

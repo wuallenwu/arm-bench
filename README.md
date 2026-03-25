@@ -6,10 +6,10 @@ Built on top of [SIMD Loops](https://gitlab.arm.com/architecture/simd-loops) (BS
 
 ## How it works
 
-Each problem gives the LLM a scalar C implementation and asks it to produce a faster SIMD version. Evaluation runs on an AWS Graviton instance over SSH — the LLM can call tools iteratively before submitting a final solution.
+Each problem gives the LLM a scalar C implementation (and a NEON reference when available) and asks it to produce a faster SIMD version. Evaluation runs on an AWS Graviton instance over SSH — the LLM can call tools iteratively before submitting a final solution.
 
 ```
-LLM gets:  scalar C function + ISA target (SVE2 / SME2)
+LLM gets:  scalar C function + NEON reference (when available) + ISA target (SVE2 / SME2)
 
 LLM tools:
   compile(code)       → build errors / warnings
@@ -44,7 +44,15 @@ python eval/provision.py --isa sve2
 
 Requires: AWS credentials in environment, Terraform installed, `~/.ssh/id_rsa` key pair.
 
-### 3. Collect baselines (run once)
+### 3. Verify the pipeline (optional)
+
+```bash
+python -m eval.test_workflow --isa sve2
+```
+
+Injects a known-good scalar candidate for `loop_001`, then exercises compile → run → perf → disassemble end-to-end. Useful after first provisioning to confirm SSH, build, and PMU access all work.
+
+### 4. Collect baselines (run once)
 
 ```bash
 python scripts/collect_baselines.py --isa sve2
@@ -52,7 +60,7 @@ python scripts/collect_baselines.py --isa sve2
 
 Builds scalar + autovec targets and records timings to `baselines/c7g.json`.
 
-### 4. Run the benchmark
+### 5. Run the benchmark
 
 **Agentic mode** (LLM uses tools iteratively):
 ```bash
@@ -66,7 +74,7 @@ python eval/generate_samples.py --all --isa sve2 --model openai/gpt-4o
 python eval/eval_from_generations.py --all --isa sve2
 ```
 
-### 5. Teardown
+### 6. Teardown
 
 ```bash
 python eval/provision.py --teardown
@@ -75,16 +83,23 @@ python eval/provision.py --teardown
 ## Repository layout
 
 ```
-dataset/problems/       75 problem.py files (scalar code + metadata)
-dataset/problems.json   Problem index
-eval/                   Benchmark harness (provision, tools, evaluator, CLIs)
-eval/eval_config.json.example   SSH config template — copy and fill in
-loops/                  Kernel source (C + inline asm, all ISA variants)
-scripts/                Dataset extraction + baseline collection
-terraform/              EC2 provisioning (Graviton3/4 spot instances)
-baselines/              Timing baselines written by collect_baselines.py
-generations/            LLM outputs written by generate_samples.py
-results/                Scored results written by eval scripts
+dataset/problems/           75 problem.py files (scalar code + metadata)
+dataset/problems.json       Problem index
+eval/                       Benchmark harness (provision, tools, evaluator, CLIs)
+  eval/provision.py         Terraform wrapper — spin up / tear down Graviton instances
+  eval/tools.py             SSH-backed tool calls (compile, run, perf, disassemble, submit)
+  eval/evaluator.py         Agentic eval loop (builds prompt, drives LLM tool calls)
+  eval/config.py            Problem loader (extracts scalar + NEON reference code)
+  eval/test_workflow.py     End-to-end smoke test — no LLM, validates the full pipeline
+  eval/eval_config.json.example   SSH config template — copy and fill in
+loops/                      Kernel source (C + inline asm, all ISA variants)
+scripts/                    Dataset extraction + baseline collection
+  scripts/fix_candidate_guards.py   Wraps bare inner_loop_NNN definitions in
+                                    #if !defined(HAVE_CANDIDATE) guards (maintenance)
+terraform/                  EC2 provisioning (Graviton3/4 spot instances)
+baselines/                  Timing baselines written by collect_baselines.py
+generations/                LLM outputs written by generate_samples.py
+results/                    Scored results written by eval scripts
 ```
 
 ## Build targets (for running kernels directly)

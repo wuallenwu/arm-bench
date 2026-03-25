@@ -33,7 +33,7 @@ struct loop_121_data {
 // alternative value for vector implementation
 #define THRESHOLD 4
 
-static void tidy_step(uint32_t n, int32_t *restrict data) {
+static __attribute__((unused)) void tidy_step(uint32_t n, int32_t *restrict data) {
   com_sort_oet(n, data, THRESHOLD);
 }
 #else  // Helpers
@@ -42,7 +42,7 @@ static void tidy_step(uint32_t n, int32_t *restrict data) {
 // known to be a good "all-purpose" value
 #define THRESHOLD 8
 
-static void tidy_step(uint32_t n, int32_t *restrict data) {
+static __attribute__((unused)) void tidy_step(uint32_t n, int32_t *restrict data) {
   com_sort_insertion(n, data);
 }
 #endif  // Helpers
@@ -80,6 +80,8 @@ static inline uint32_t find_pivot(uint32_t n, const int32_t *restrict data) {
   return candidates[1].idx;
 }
 #endif
+
+#if !defined(HAVE_CANDIDATE)
 
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 // Quicksort
@@ -241,6 +243,7 @@ static void inner_loop_121(struct loop_121_data *input) {
   fill_int32(input->data, input->n);
   do_sort(input);
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 256
 

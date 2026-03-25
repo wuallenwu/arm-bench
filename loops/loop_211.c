@@ -36,7 +36,7 @@ typedef struct {
 } cint32_t;
 
 // Scalar multiply-accumulate for verification
-static cint32_t cmla(cint32_t c, cint16_t a, cint16_t b) {
+static __attribute__((unused)) cint32_t cmla(cint32_t c, cint16_t a, cint16_t b) {
 #define RE(v) ((uint32_t) v.re)
 #define IM(v) ((uint32_t) v.im)
   c.re += RE(a) * RE(b) - IM(a) * IM(b);
@@ -61,6 +61,8 @@ static void inner_loop_211(struct loop_211_data *restrict data) {
     (void)data;
 }
 // CANDIDATE_INJECT_END
+#define LOOP_ATTR SC_SVE_ATTR
+#define OUTER_LOOP_ATTR SC_SVE_LOOP_ATTR
 #elif defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
@@ -74,6 +76,8 @@ static void inner_loop_211(struct loop_211_data *restrict data) {
 #define LOOP_ATTR
 #define OUTER_LOOP_ATTR
 #endif
+
+#if !defined(HAVE_CANDIDATE)
 
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 
@@ -1033,6 +1037,7 @@ static void inner_loop_211(struct loop_211_data *data) {
 #undef  PROBLEM_SIZE_LIMIT_KIB
 #define PROBLEM_SIZE_LIMIT_KIB 96
 #endif
+#endif /* !HAVE_CANDIDATE */
 
 // Actual input buffer memory footprint in bytes
 #define PROBLEM_SIZE_ACTUAL(m,n,k) ((k)*((m)+(n))*sizeof(cint16_t))

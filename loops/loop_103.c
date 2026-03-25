@@ -174,6 +174,8 @@ static uint8_t *NOINLINE skip_whitespace(uint8_t *p, uint8_t *end) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 #if defined(HAVE_AUTOVEC) || defined(HAVE_NATIVE)
 static uint8_t *NOINLINE skip_word(uint8_t *p, uint8_t *end) {
   while (p != end && *p != ' ' && *p != '\n' && *p != '\r' && *p != '\t') {
@@ -333,6 +335,7 @@ static void inner_loop_103(struct loop_103_data *restrict input) {
 
   input->checksum = count;
 }
+#endif /* !HAVE_CANDIDATE */
 
 LOOP_DECL(103, NS_SVE_LOOP_ATTR)
 {

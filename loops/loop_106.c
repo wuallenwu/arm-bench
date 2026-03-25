@@ -47,7 +47,7 @@ static uint32_t popcount(uint32_t x) {
 }
 #endif
 
-static uint32_t compress(uint32_t x, uint32_t m) {
+static __attribute__((unused)) uint32_t compress(uint32_t x, uint32_t m) {
   uint32_t mk, mp, mv, t;
   int i;
 

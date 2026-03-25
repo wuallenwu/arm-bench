@@ -66,10 +66,13 @@ static void NOINLINE do_sort(struct loop_122_data *restrict input) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 static void inner_loop_122(struct loop_122_data *restrict input) {
   fill_int32(input->data, input->n);
   do_sort(input);
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 256
 

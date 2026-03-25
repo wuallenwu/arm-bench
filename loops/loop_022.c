@@ -235,6 +235,8 @@ static void inner_loop_022(struct loop_022_data *data) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 static void inner_loop_022(struct loop_022_data *restrict data)
 LOOP_ATTR
 {
@@ -252,6 +254,7 @@ LOOP_ATTR
   }
   data->checksum = res;
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 20000
 

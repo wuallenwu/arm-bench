@@ -81,6 +81,13 @@ def load_problems(with_code: bool = True) -> dict:
             if scalar_m:
                 meta["scalar_code"] = scalar_m.strip()
 
+            # Extract NEON implementation from the loop source file (if present)
+            loop_num = pid.split("_")[1]
+            loop_src = REPO_ROOT / "loops" / f"loop_{loop_num}.c"
+            neon = _extract_neon_code(loop_src)
+            if neon:
+                meta["neon_code"] = neon.strip()
+
     return result
 
 
@@ -94,6 +101,42 @@ def _extract_triple_quoted(text: str, var_name: str) -> str | None:
     )
     m = pattern.search(text)
     return m.group(1) if m else None
+
+
+def _extract_neon_code(loop_src: Path) -> str | None:
+    """
+    Extract the `#elif defined(__ARM_NEON)` implementation from a loop source
+    file. Returns the full function text (from `static void ...` to closing `}`),
+    or None if no NEON branch exists.
+    """
+    if not loop_src.exists():
+        return None
+    lines = loop_src.read_text().splitlines(keepends=True)
+
+    # Find the start of the NEON branch
+    neon_start = next(
+        (i for i, l in enumerate(lines) if "__ARM_NEON" in l and l.strip().startswith("#elif")),
+        None,
+    )
+    if neon_start is None:
+        return None
+
+    # Collect lines from neon_start+1 until the next top-level #elif/#else/#endif
+    depth = 0
+    func_lines = []
+    in_func = False
+    for i in range(neon_start + 1, len(lines)):
+        s = lines[i].strip()
+        # Stop at the next preprocessor branch at depth 0
+        if depth == 0 and s.startswith(("#elif", "#else", "#endif")):
+            break
+        if s.startswith("#if"):
+            depth += 1
+        elif s.startswith("#endif"):
+            depth -= 1
+        func_lines.append(lines[i])
+
+    return "".join(func_lines) if func_lines else None
 
 
 def load_baselines(tier: str) -> dict:

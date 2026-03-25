@@ -43,7 +43,7 @@ struct loop_136_data {
   int8_t lut[16];
 };
 
-static inline int32_t int32_dot8(uint64_t i, uint64_t j, uint64_t k,
+static inline __attribute__((unused)) int32_t int32_dot8(uint64_t i, uint64_t j, uint64_t k,
                                  struct loop_136_data *data) {
   int8_t const *a = &data->a[k * data->m + 8 * i];
   int8_t const *b = &data->b[k / 2 * data->n + 4 * j];

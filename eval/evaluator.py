@@ -74,6 +74,13 @@ def build_user_prompt(problem: dict, isa: str) -> str:
     description = problem.get("description", "")
     isa_desc = ISA_INSTANCE_DESC.get(isa, isa)
 
+    neon_code = problem.get("neon_code", "")
+    neon_section = (
+        f"\nNEON reference implementation (shows vectorisation structure):\n"
+        f"```c\n{neon_code}\n```\n"
+        if neon_code else ""
+    )
+
     return f"""\
 Problem: {problem["name"]}
 Purpose: {description}
@@ -88,7 +95,7 @@ Scalar reference implementation (your task: replace with {isa.upper()}):
 ```c
 {scalar_code}
 ```
-
+{neon_section}
 {ONE_SHOT_EXAMPLE}
 
 Write an optimized {isa.upper()} implementation. Start by calling compile() with your first attempt.

@@ -32,9 +32,9 @@ struct loop_026_data {
 #define SIZE_TABLE3 MASK_TABLE3 + 1
 #define BAD_VALUE 0x100
 
-static uint16_t table1[SIZE_TABLE1];
-static uint16_t table2[SIZE_TABLE2];
-static uint16_t table3[SIZE_TABLE3];
+static uint16_t table1[SIZE_TABLE1] __attribute__((unused));
+static uint16_t table2[SIZE_TABLE2] __attribute__((unused));
+static uint16_t table3[SIZE_TABLE3] __attribute__((unused));
 
 #if defined(HAVE_CANDIDATE)
 // CANDIDATE_INJECT_START
@@ -178,6 +178,8 @@ static void inner_loop_026(struct loop_026_data *data) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 static void inner_loop_026(struct loop_026_data *restrict data) {
   uint16_t *p = data->p;
   uint8_t *d = data->d;
@@ -190,6 +192,7 @@ static void inner_loop_026(struct loop_026_data *restrict data) {
     d += length;
   }
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE 2000
 

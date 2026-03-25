@@ -646,6 +646,8 @@ static void inner_loop_025(struct loop_025_data *data) {
 }
 #endif
 
+#if !defined(HAVE_CANDIDATE)
+
 static void inner_loop_025(struct loop_025_data *restrict data) {
   float *a = data->a;
   float *b = data->b;
@@ -655,6 +657,7 @@ static void inner_loop_025(struct loop_025_data *restrict data) {
     matrix_multiply_8x8(a + offset, b + offset, c + offset);
   }
 }
+#endif /* !HAVE_CANDIDATE */
 
 #define SIZE (8 * 8 * 8)
 
