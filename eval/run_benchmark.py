@@ -62,6 +62,14 @@ def main():
 
     args = parser.parse_args()
 
+    # SME2 requires hardware not yet available on AWS (no EC2 instance supports SME2).
+    # The problems are kept in the dataset for future use.
+    if args.isa == "sme2":
+        print("ERROR: SME2 is not yet supported — no AWS EC2 instance implements the "
+              "Scalable Matrix Extension. SME2 problems are reserved for future hardware. "
+              "Use --isa sve (c7g) or --isa sve2 (c8g) instead.")
+        return
+
     # ── Resolve instance ───────────────────────────────────────────────────
     instance_type = args.instance or ISA_INSTANCE_MAP.get(args.isa, "c7g.large")
 

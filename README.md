@@ -9,7 +9,7 @@ Built on top of [SIMD Loops](https://gitlab.arm.com/architecture/simd-loops) (BS
 Each problem gives the LLM a scalar C implementation (and a NEON reference when available) and asks it to produce a faster SIMD version. Evaluation runs on an AWS Graviton instance over SSH — the LLM can call tools iteratively before submitting a final solution.
 
 ```
-LLM gets:  scalar C function + NEON reference (when available) + ISA target (SVE2 / SME2)
+LLM gets:  scalar C function + NEON reference (when available) + ISA target (SVE / SVE2)
 
 LLM tools:
   compile(code)       → build errors / warnings
@@ -25,7 +25,7 @@ Score:  Level 0  compile fail / wrong checksum
         Level 4  correct + faster than hand-written SVE/SVE2 reference
 ```
 
-**55 SVE problems** (Graviton3, `c7g.large`) · **20 SME2 problems** (Graviton4, `c8g.large`)
+**55 SVE problems** (Graviton3, `c7g.large`) · **20 SME2 problems** (future — see below)
 
 ## Quickstart
 
@@ -57,7 +57,7 @@ Injects a known-good scalar candidate for `loop_001`, then exercises compile →
 
 ```bash
 python scripts/collect_baselines.py --isa sve    # c7g (Graviton3, SVE)
-python scripts/collect_baselines.py --isa sme2   # c8g (Graviton4, SVE2/SME2)
+python scripts/collect_baselines.py --isa sve2   # c8g (Graviton4, SVE2)
 ```
 
 Builds scalar, autovec, and hand-written ISA reference targets; records timings to `baselines/{tier}.json` (scalar_ms, autovec_ms, ref_ms).
@@ -114,7 +114,7 @@ Requires clang-18 on AArch64 Linux. On AWS: `terraform/setup.sh` installs it.
 | `neon` | NEON 128-bit | any AArch64 |
 | `sve` | SVE 256-bit | c7g (Graviton3) |
 | `sve2` | SVE2 128-bit | c8g (Graviton4) |
-| `sme2` | SME2 | c8g (Graviton4) |
+| `sme2` | SME2 | — (no AWS support yet) |
 | `autovec-sve` | compiler autovec (SVE) | c7g |
 | `autovec-sve2` | compiler autovec (SVE2) | c8g |
 
@@ -122,6 +122,12 @@ Requires clang-18 on AArch64 Linux. On AWS: `terraform/setup.sh` installs it.
 make sve2
 ./build/sve2/bin/simd_loops -k 1 -n 100
 ```
+
+## SME2 — future target
+
+The dataset includes 20 SME2 kernel problems sourced from the upstream SIMD Loops project. However, **no AWS EC2 instance currently supports SME2** — Graviton4 (Neoverse V2, c8g) implements SVE2 but not the Scalable Matrix Extension. The first publicly available SME2 hardware is Apple M4.
+
+The SME2 problems are kept in the dataset for future use. Attempting to run `--isa sme2` in the benchmark or collect_baselines scripts will raise an error until hardware support is available.
 
 ## License
 

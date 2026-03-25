@@ -228,9 +228,11 @@ def run_agentic_eval(
         baseline = baselines.get(problem_id, {})
         scalar_ms = baseline.get("scalar_ms")
         autovec_ms = baseline.get("autovec_ms")
+        ref_ms = baseline.get("ref_ms")
 
         speedup_vs_scalar = None
         speedup_vs_autovec = None
+        speedup_vs_ref = None
         level = 0
 
         if rr.correct:
@@ -243,11 +245,16 @@ def run_agentic_eval(
                 speedup_vs_autovec = round(autovec_ms / rr.runtime_ms, 2)
                 if level >= 2 and speedup_vs_autovec > 1.0:
                     level = 3
+            if rr.runtime_ms and ref_ms:
+                speedup_vs_ref = round(ref_ms / rr.runtime_ms, 2)
+                if level >= 3 and speedup_vs_ref > 1.0:
+                    level = 4
 
         final_result = EvalResult(
             correct=rr.correct,
             speedup_vs_scalar=speedup_vs_scalar,
             speedup_vs_autovec=speedup_vs_autovec,
+            speedup_vs_ref=speedup_vs_ref,
             level=level,
             runtime_ms=rr.runtime_ms,
             tool_calls=tools._tool_calls,

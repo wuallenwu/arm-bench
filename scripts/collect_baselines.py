@@ -159,6 +159,11 @@ def main():
                         help="Provision a new instance if none is running")
     args = parser.parse_args()
 
+    if args.isa == "sme2":
+        print("ERROR: SME2 is not yet supported — no AWS EC2 instance implements SME2. "
+              "SME2 problems are reserved for future hardware.")
+        return
+
     # Get instance
     handle = get_running_instance(args.isa)
     if handle is None:
