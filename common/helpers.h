@@ -26,11 +26,17 @@ void *alloc_64b(uint64_t size, const char *name);
 #define ALLOC_64B(P, S, N) P = alloc_64b((S) * sizeof((P)[0]), N)
 
 // Standard floating-point types
-#if defined(__aarch64__)
+#if defined(__aarch64__) && defined(__ARM_NEON)
 #include <arm_neon.h>
 #ifdef __ARM_FEATURE_BF16
 #include <arm_bf16.h>
 #endif
+#elif defined(__aarch64__)
+/* AArch64 scalar build (-U__ARM_NEON): fp16 as built-in, bf16 as raw bits */
+typedef __fp16   float16_t;
+typedef uint16_t bfloat16_t;  /* store raw bf16 bits; use bf16_to_f32() to convert */
+typedef float    float32_t;
+typedef double   float64_t;
 #else
 typedef uint16_t float16_t;
 typedef uint16_t bfloat16_t;
@@ -93,22 +99,36 @@ static inline float16_t native_to_fp16(FLOAT16_t x) {
 
 // BF16 support
 #if defined(__aarch64__)
+#ifdef __ARM_NEON
 typedef __bf16 BFLOAT16_t;
 
 static inline float bf16_to_f32(bfloat16_t a) {
   BFLOAT16_t b;
-  float res;
   memcpy(&b, &a, sizeof(b));
-  res = vcvtah_f32_bf16(b);  // bf16 to float conversion
-  return res;
+  return vcvtah_f32_bf16(b);
 }
 
 static inline bfloat16_t f32_to_bf16(float n) {
-  BFLOAT16_t a = vcvth_bf16_f32(n);  // float to bf16 conversion
+  BFLOAT16_t a = vcvth_bf16_f32(n);
   bfloat16_t b;
   memcpy(&b, &a, sizeof(b));
   return b;
 }
+#else
+/* AArch64 scalar build: bf16 ↔ f32 via bit manipulation (bf16 = upper 16b of f32) */
+static inline float bf16_to_f32(bfloat16_t a) {
+  uint32_t bits = (uint32_t)a << 16;
+  float res;
+  memcpy(&res, &bits, sizeof(res));
+  return res;
+}
+
+static inline bfloat16_t f32_to_bf16(float n) {
+  uint32_t bits;
+  memcpy(&bits, &n, sizeof(bits));
+  return (bfloat16_t)(bits >> 16);
+}
+#endif /* __ARM_NEON */
 #else
 float bf16_to_f32(bfloat16_t a);
 bfloat16_t f32_to_bf16(float n);

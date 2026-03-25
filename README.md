@@ -22,9 +22,10 @@ Score:  Level 0  compile fail / wrong checksum
         Level 1  correct
         Level 2  correct + faster than scalar
         Level 3  correct + faster than autovec  ← "fast_p"
+        Level 4  correct + faster than hand-written SVE/SVE2 reference
 ```
 
-**55 SVE2 problems** (Graviton3, `c7g.large`) · **20 SME2 problems** (Graviton4, `c8g.large`)
+**55 SVE problems** (Graviton3, `c7g.large`) · **20 SME2 problems** (Graviton4, `c8g.large`)
 
 ## Quickstart
 
@@ -55,17 +56,18 @@ Injects a known-good scalar candidate for `loop_001`, then exercises compile →
 ### 4. Collect baselines (run once)
 
 ```bash
-python scripts/collect_baselines.py --isa sve2
+python scripts/collect_baselines.py --isa sve    # c7g (Graviton3, SVE)
+python scripts/collect_baselines.py --isa sme2   # c8g (Graviton4, SVE2/SME2)
 ```
 
-Builds scalar + autovec targets and records timings to `baselines/c7g.json`.
+Builds scalar, autovec, and hand-written ISA reference targets; records timings to `baselines/{tier}.json` (scalar_ms, autovec_ms, ref_ms).
 
 ### 5. Run the benchmark
 
 **Agentic mode** (LLM uses tools iteratively):
 ```bash
-python eval/run_benchmark.py --problem loop_001 --isa sve2 --model anthropic/claude-opus-4-6
-python eval/run_benchmark.py --all --isa sve2 --model anthropic/claude-opus-4-6 --teardown
+python eval/run_benchmark.py --problem loop_001 --isa sve --model anthropic/claude-opus-4-6
+python eval/run_benchmark.py --all --isa sve --model anthropic/claude-opus-4-6 --teardown
 ```
 
 **Single-shot mode** (KernelBench-compatible, generate then evaluate separately):
@@ -110,9 +112,11 @@ Requires clang-18 on AArch64 Linux. On AWS: `terraform/setup.sh` installs it.
 |--------|-----|----------|
 | `scalar` / `c-scalar` | scalar C | any |
 | `neon` | NEON 128-bit | any AArch64 |
-| `sve` / `sve2` | SVE/SVE2 256-bit | c7g (Graviton3) |
+| `sve` | SVE 256-bit | c7g (Graviton3) |
+| `sve2` | SVE2 128-bit | c8g (Graviton4) |
 | `sme2` | SME2 | c8g (Graviton4) |
-| `autovec-sve2` | compiler autovec | c7g |
+| `autovec-sve` | compiler autovec (SVE) | c7g |
+| `autovec-sve2` | compiler autovec (SVE2) | c8g |
 
 ```bash
 make sve2

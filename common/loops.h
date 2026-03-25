@@ -74,7 +74,7 @@ SC_SVE_ATTR
 }
 #endif // __ARM_FEATURE_SVE
 
-#if !defined(__ARM_FEATURE_SME) && !defined(__ARM_FEATURE_SVE)
+#if !defined(__ARM_FEATURE_SME) && !defined(__ARM_FEATURE_SVE) && defined(__ARM_NEON)
 #include <arm_neon.h>
 #endif
 

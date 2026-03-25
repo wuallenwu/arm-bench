@@ -128,7 +128,7 @@ def _print_summary(results: dict[str, EvalResult], isa: str, model: str):
     if n == 0:
         return
 
-    by_level = {0: 0, 1: 0, 2: 0, 3: 0}
+    by_level = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
     speedups = []
     for r in results.values():
         by_level[r.level] = by_level.get(r.level, 0) + 1
@@ -137,19 +137,21 @@ def _print_summary(results: dict[str, EvalResult], isa: str, model: str):
 
     n_correct = sum(v for k, v in by_level.items() if k >= 1)
     n_fast = sum(v for k, v in by_level.items() if k >= 2)
-    n_best = by_level.get(3, 0)
+    n_autovec = sum(v for k, v in by_level.items() if k >= 3)
+    n_ref = by_level.get(4, 0)
     avg_speedup = round(sum(speedups) / len(speedups), 2) if speedups else None
 
     print(f"\n{'='*60}")
     print(f"  Benchmark Summary")
     print(f"  Model: {model}  |  ISA: {isa}")
     print(f"{'='*60}")
-    print(f"  Total problems:          {n}")
-    print(f"  Correct (level ≥ 1):     {n_correct}/{n}  ({100*n_correct//n}%)")
+    print(f"  Total problems:           {n}")
+    print(f"  Correct (level ≥ 1):      {n_correct}/{n}  ({100*n_correct//n}%)")
     print(f"  Beats scalar (level ≥ 2): {n_fast}/{n}  ({100*n_fast//n}%)  ← fast_p")
-    print(f"  Beats autovec (level 3):  {n_best}/{n}  ({100*n_best//n}%)")
+    print(f"  Beats autovec (level ≥ 3): {n_autovec}/{n}  ({100*n_autovec//n}%)")
+    print(f"  Beats hand-written (level 4): {n_ref}/{n}  ({100*n_ref//n}%)")
     if avg_speedup is not None:
-        print(f"  Avg speedup vs scalar:   {avg_speedup}×  (correct submissions)")
+        print(f"  Avg speedup vs scalar:    {avg_speedup}×  (correct submissions)")
     print(f"{'='*60}")
 
 

@@ -18,7 +18,7 @@ BASELINES_DIR = REPO_ROOT / "baselines"
 ISA_TIER = {
     "neon": "c7g",
     "sve": "c7g",
-    "sve2": "c7g",
+    "sve2": "c8g",
     "sme2": "c8g",
 }
 
@@ -34,8 +34,8 @@ ISA_MAKE_TARGET = {
 ISA_INSTANCE_DESC = {
     "neon": "Arm Neoverse V1 (AWS Graviton3, NEON 128-bit)",
     "sve": "Arm Neoverse V1 (AWS Graviton3, SVE 256-bit)",
-    "sve2": "Arm Neoverse V1 (AWS Graviton3, SVE2 256-bit)",
-    "sme2": "Arm Neoverse V2 (AWS Graviton4, SME2 128-bit)",
+    "sve2": "Arm Neoverse V2 (AWS Graviton4, SVE2 128-bit)",
+    "sme2": "Arm Neoverse V2 (AWS Graviton4, SVE2 128-bit)",
 }
 
 

@@ -76,6 +76,7 @@ class EvalResult:
     correct: bool
     speedup_vs_scalar: float | None = None
     speedup_vs_autovec: float | None = None
+    speedup_vs_ref: float | None = None
     level: int = 0
     compile_error: str = ""
     runtime_ms: float | None = None
@@ -86,6 +87,7 @@ class EvalResult:
             "correct": self.correct,
             "speedup_vs_scalar": self.speedup_vs_scalar,
             "speedup_vs_autovec": self.speedup_vs_autovec,
+            "speedup_vs_ref": self.speedup_vs_ref,
             "level": self.level,
             "compile_error": self.compile_error,
             "runtime_ms": self.runtime_ms,
@@ -383,9 +385,11 @@ class SIMDTools:
         baseline = baselines.get(self.problem_id, {})
         scalar_ms = baseline.get("scalar_ms")
         autovec_ms = baseline.get("autovec_ms")
+        ref_ms = baseline.get("ref_ms")  # hand-written SVE/SVE2/SME2 reference
 
         speedup_vs_scalar = None
         speedup_vs_autovec = None
+        speedup_vs_ref = None
         level = 1  # correct
 
         if runtime_ms and scalar_ms:
@@ -398,10 +402,16 @@ class SIMDTools:
             if level >= 2 and speedup_vs_autovec > 1.0:
                 level = 3
 
+        if runtime_ms and ref_ms:
+            speedup_vs_ref = round(ref_ms / runtime_ms, 2)
+            if level >= 3 and speedup_vs_ref > 1.0:
+                level = 4  # beats hand-written SVE reference
+
         return EvalResult(
             correct=True,
             speedup_vs_scalar=speedup_vs_scalar,
             speedup_vs_autovec=speedup_vs_autovec,
+            speedup_vs_ref=speedup_vs_ref,
             level=level,
             runtime_ms=runtime_ms,
             tool_calls=self._tool_calls,

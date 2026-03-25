@@ -4,11 +4,11 @@
     "num": "001",
     "name": "FP32 inner product",
     "description": "Use of fp32 MLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_001_fp32_inner_product",
     "tags": [
-      "sve2",
+      "sve",
       "fp32"
     ]
   },
@@ -17,11 +17,11 @@
     "num": "002",
     "name": "UINT32 inner product",
     "description": "Use of u32 MLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_002_uint32_inner_product",
     "tags": [
-      "sve2",
+      "sve",
       "uint"
     ]
   },
@@ -30,11 +30,11 @@
     "num": "003",
     "name": "FP64 inner product",
     "description": "Use of fp64 MLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_003_fp64_inner_product",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -43,11 +43,11 @@
     "num": "004",
     "name": "UINT64 inner product",
     "description": "Use of u64 MLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_004_uint64_inner_product",
     "tags": [
-      "sve2",
+      "sve",
       "uint"
     ]
   },
@@ -56,11 +56,11 @@
     "num": "005",
     "name": "strlen short strings",
     "description": "Use of FF and NF loads instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_005_strlen_short_strings",
     "tags": [
-      "sve2",
+      "sve",
       "string"
     ]
   },
@@ -69,11 +69,11 @@
     "num": "006",
     "name": "strlen long strings",
     "description": "Use of FF and NF loads instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_006_strlen_long_strings",
     "tags": [
-      "sve2",
+      "sve",
       "string"
     ]
   },
@@ -82,11 +82,11 @@
     "num": "008",
     "name": "Precise fp64 add reduction",
     "description": "Use of FADDA instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_008_precise_fp64_add_reduction",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -95,11 +95,11 @@
     "num": "009",
     "name": "Pointer chasing",
     "description": "Use of CTERM and BRK instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_009_pointer_chasing",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -107,11 +107,11 @@
     "num": "010",
     "name": "Conditional reduction (fp)",
     "description": "Use of CLAST (SIMD&FP scalar) instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_010_conditional_reduction_fp",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -119,11 +119,11 @@
     "num": "012",
     "name": "Particle motion",
     "description": "Use of FP compare instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_012_particle_motion",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -131,11 +131,11 @@
     "num": "019",
     "name": "Mark objects",
     "description": "Use of scatters store instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_019_mark_objects",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -143,11 +143,11 @@
     "num": "022",
     "name": "TCP checksum",
     "description": "Use of simd instructions for misaligned accesses",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_022_tcp_checksum",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -155,11 +155,11 @@
     "num": "023",
     "name": "Conjugate Gradient",
     "description": "Use of gathers load instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_023_conjugate_gradient",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -167,11 +167,11 @@
     "num": "024",
     "name": "Sum of abs diffs",
     "description": "Use of DOT instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_024_sum_of_abs_diffs",
     "tags": [
-      "sve2",
+      "sve",
       "dot-product"
     ]
   },
@@ -180,11 +180,11 @@
     "num": "025",
     "name": "FP32 small matrix-matrix multiply",
     "description": "Use of fp32 indexed MLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_025_fp32_small_matrix_matrix_multiply",
     "tags": [
-      "sve2",
+      "sve",
       "matmul",
       "fp32"
     ]
@@ -194,11 +194,11 @@
     "num": "026",
     "name": "Convert UTF-16 to chars",
     "description": "Use of gathers load instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_026_convert_utf_16_to_chars",
     "tags": [
-      "sve2",
+      "sve",
       "string"
     ]
   },
@@ -207,11 +207,11 @@
     "num": "027",
     "name": "FP32 square root",
     "description": "Use of FSQRT instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_027_fp32_square_root",
     "tags": [
-      "sve2",
+      "sve",
       "fp32"
     ]
   },
@@ -220,11 +220,11 @@
     "num": "028",
     "name": "FP64 fast division",
     "description": "Use of FRECPE and FRECPS instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_028_fp64_fast_division",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -233,11 +233,11 @@
     "num": "029",
     "name": "FP64 multiply by power of 2",
     "description": "Use of FSCALE instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_029_fp64_multiply_by_power_of_2",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -246,11 +246,11 @@
     "num": "031",
     "name": "small-lengths inline memcpy test",
     "description": "Use of simd-based memcpy for small lengths and at varied alignments",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_031_small_lengths_inline_memcpy_test",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -258,11 +258,11 @@
     "num": "032",
     "name": "FP64 banded linear equations",
     "description": "Use of strided gather and INC instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_032_fp64_banded_linear_equations",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -271,11 +271,11 @@
     "num": "033",
     "name": "FP64 Inner product",
     "description": "Use of a tight loop with INC and WHILE instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_033_fp64_inner_product",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -284,11 +284,11 @@
     "num": "034",
     "name": "Short string compares",
     "description": "Use of FFR for strcmp",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_034_short_string_compares",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -296,11 +296,11 @@
     "num": "035",
     "name": "Array addition",
     "description": "Use of WHILE for loop control",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_035_array_addition",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -308,11 +308,11 @@
     "num": "036",
     "name": "Sparse matrix Gauss Step",
     "description": "Use of gather-based matrix processing",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_036_sparse_matrix_gauss_step",
     "tags": [
-      "sve2",
+      "sve",
       "matmul"
     ]
   },
@@ -321,11 +321,11 @@
     "num": "037",
     "name": "FP32 complex vector product",
     "description": "Use of fp32 FCMLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_037_fp32_complex_vector_product",
     "tags": [
-      "sve2",
+      "sve",
       "fp32"
     ]
   },
@@ -334,11 +334,11 @@
     "num": "038",
     "name": "Fp16 convolution",
     "description": "Use of fp16 multiply-add instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_038_fp16_convolution",
     "tags": [
-      "sve2",
+      "sve",
       "fp16"
     ]
   },
@@ -347,11 +347,11 @@
     "num": "040",
     "name": "Clamp operation",
     "description": "Use of simd clamp (or min, max and shift) instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_040_clamp_operation",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -359,11 +359,11 @@
     "num": "101",
     "name": "Upscale filter",
     "description": "Use of top/bottom instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_101_upscale_filter",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -371,11 +371,11 @@
     "num": "102",
     "name": "General histogram",
     "description": "Use of HISTCNT instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_102_general_histogram",
     "tags": [
-      "sve2",
+      "sve",
       "histogram"
     ]
   },
@@ -384,11 +384,11 @@
     "num": "103",
     "name": "whitespace",
     "description": "Use of MATCH and NMATCH instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_103_whitespace",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -396,11 +396,11 @@
     "num": "104",
     "name": "Byte historgram",
     "description": "Use of HISTSEG instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_104_byte_historgram",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -408,11 +408,11 @@
     "num": "105",
     "name": "Cascade summation",
     "description": "Use of pairwise FP add instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_105_cascade_summation",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -420,11 +420,11 @@
     "num": "106",
     "name": "Sheep and goats",
     "description": "Use of BGRP instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_106_sheep_and_goats",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -432,11 +432,11 @@
     "num": "107",
     "name": "UINT128 multiply",
     "description": "Use of ADCL[B/T] instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_107_uint128_multiply",
     "tags": [
-      "sve2",
+      "sve",
       "uint"
     ]
   },
@@ -445,11 +445,11 @@
     "num": "108",
     "name": "Pixel manipulation",
     "description": "Use of LD4 with shift-accumulate instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_108_pixel_manipulation",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -457,11 +457,11 @@
     "num": "109",
     "name": "UINT32 complex addition",
     "description": "Use of u32 CADD instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_109_uint32_complex_addition",
     "tags": [
-      "sve2",
+      "sve",
       "uint"
     ]
   },
@@ -470,11 +470,11 @@
     "num": "110",
     "name": "UINT32 complex dot",
     "description": "Use of u32 CDOT instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_110_uint32_complex_dot",
     "tags": [
-      "sve2",
+      "sve",
       "dot-product",
       "uint"
     ]
@@ -484,11 +484,11 @@
     "num": "111",
     "name": "FP64 overflow handling",
     "description": "Use of FLOGB and FSCALE instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_111_fp64_overflow_handling",
     "tags": [
-      "sve2",
+      "sve",
       "fp64"
     ]
   },
@@ -497,11 +497,11 @@
     "num": "112",
     "name": "UINT32 complex MAC",
     "description": "Use of CMLA instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_112_uint32_complex_mac",
     "tags": [
-      "sve2",
+      "sve",
       "uint"
     ]
   },
@@ -510,11 +510,11 @@
     "num": "113",
     "name": "UINT32 Pairs addition",
     "description": "Use of u32 ADDP",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_113_uint32_pairs_addition",
     "tags": [
-      "sve2",
+      "sve",
       "uint"
     ]
   },
@@ -523,11 +523,11 @@
     "num": "114",
     "name": "Auto-correlation",
     "description": "Use of shifts, widening mult and load-replicate instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_114_auto_correlation",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -535,11 +535,11 @@
     "num": "120",
     "name": "Insertion sort",
     "description": "Use of CMPLT instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_120_insertion_sort",
     "tags": [
-      "sve2",
+      "sve",
       "sort"
     ]
   },
@@ -548,11 +548,11 @@
     "num": "121",
     "name": "Quicksort",
     "description": "Use of CMPLT with COMPACT and CNTP instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_121_quicksort",
     "tags": [
-      "sve2",
+      "sve",
       "sort"
     ]
   },
@@ -561,11 +561,11 @@
     "num": "122",
     "name": "Odd-Even transposition sort",
     "description": "Use of CMPLT with SEL instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_122_odd_even_transposition_sort",
     "tags": [
-      "sve2",
+      "sve",
       "sort"
     ]
   },
@@ -574,11 +574,11 @@
     "num": "123",
     "name": "Bitonic mergesort",
     "description": "Use of CMPGT with SEL instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_123_bitonic_mergesort",
     "tags": [
-      "sve2",
+      "sve",
       "sort"
     ]
   },
@@ -587,11 +587,11 @@
     "num": "124",
     "name": "Radix sort",
     "description": "Use of simd instructions in radix sort",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_124_radix_sort",
     "tags": [
-      "sve2",
+      "sve",
       "sort"
     ]
   },
@@ -600,11 +600,11 @@
     "num": "126",
     "name": "conditional update",
     "description": "Use of simd loop with conditional update",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_126_conditional_update",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -612,11 +612,11 @@
     "num": "127",
     "name": "loop early exit",
     "description": "Use of simd loop with early exit",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_127_loop_early_exit",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -624,11 +624,11 @@
     "num": "128",
     "name": "alias in contiguous access",
     "description": "Use of simd loop with possible alias in contiguous mem access",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_128_alias_in_contiguous_access",
     "tags": [
-      "sve2"
+      "sve"
     ]
   },
   {
@@ -636,11 +636,11 @@
     "num": "130",
     "name": "FP32 matrix-matrix multiply using",
     "description": "Use of fp32 MMLA instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_130_fp32_matrix_matrix_multiply_using",
     "tags": [
-      "sve2",
+      "sve",
       "matmul",
       "fp32"
     ]
@@ -650,11 +650,11 @@
     "num": "135",
     "name": "INT8-INT32 matrix-matrix multiply using MMLA",
     "description": "Use of i8 to i32 MMLA instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_135_int8_int32_matrix_matrix_multiply_using_",
     "tags": [
-      "sve2",
+      "sve",
       "matmul",
       "int8"
     ]
@@ -664,11 +664,11 @@
     "num": "136",
     "name": "INT4-INT32 matrix-matrix multiply using MMLA",
     "description": "Use of 4-bit dequantization (LUT) with i8 to i32 MMLA instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_136_int4_int32_matrix_matrix_multiply_using_",
     "tags": [
-      "sve2",
+      "sve",
       "matmul"
     ]
   },
@@ -677,11 +677,11 @@
     "num": "137",
     "name": "BF16-FP32 matrix-matrix multiply using MMLA",
     "description": "Use of bf16 to fp32 MMLA instructions",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_137_bf16_fp32_matrix_matrix_multiply_using_m",
     "tags": [
-      "sve2",
+      "sve",
       "matmul",
       "fp32",
       "bf16"
@@ -987,11 +987,11 @@
     "num": "231",
     "name": "BF16-FP32 col-major interleaved matrix-vector multiply",
     "description": "Use of bf16 to fp32 DOT instruction",
-    "isa_target": "sve2",
+    "isa_target": "sve",
     "instance_type": "c7g.large",
     "dir_name": "loop_231_bf16_fp32_col_major_interleaved_matrix_v",
     "tags": [
-      "sve2",
+      "sve",
       "matmul",
       "dot-product",
       "fp32",

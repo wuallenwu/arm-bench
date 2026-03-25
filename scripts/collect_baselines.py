@@ -71,25 +71,39 @@ def collect_baselines(
     n: int = DEFAULT_N,
 ) -> dict:
     """
-    Build scalar and autovec targets, run all problems, return timing dict.
+    Build scalar, autovec, and hand-written ISA targets; run all problems.
 
     Returns:
-        { "loop_001": { "scalar_ms": 156.3, "autovec_ms": 42.1 }, ... }
+        { "loop_001": { "scalar_ms": 9.4, "autovec_ms": 7.0, "ref_ms": 2.1 }, ... }
+
+    ref_ms is the hand-written ISA reference (sve/sve2/sme2 build), which is
+    the primary target for agents to beat.
     """
     tier = ISA_TIER.get(isa, "c7g")
     remote_root = "~/simd-loops"
 
-    print(f"\n[baselines] Building scalar target...")
-    build_target(handle, "scalar")
-    scalar_binary = f"{remote_root}/build/scalar/bin/simd_loops"
+    print(f"\n[baselines] Building c-scalar target (HAVE_NATIVE)...")
+    build_target(handle, "c-scalar")
+    scalar_binary = f"{remote_root}/build/c-scalar/bin/simd_loops"
 
-    print(f"[baselines] Building autovec-sve2 target...")
+    autovec_target = "autovec-sve2" if isa in ("sve2", "sme2") else "autovec-sve"
+    print(f"[baselines] Building {autovec_target} target...")
     try:
-        build_target(handle, "autovec-sve2")
-        autovec_binary = f"{remote_root}/build/autovec-sve2/bin/simd_loops"
+        build_target(handle, autovec_target)
+        autovec_binary = f"{remote_root}/build/{autovec_target}/bin/simd_loops"
     except RuntimeError as e:
-        print(f"  WARNING: autovec-sve2 build failed: {e}")
+        print(f"  WARNING: {autovec_target} build failed: {e}")
         autovec_binary = None
+
+    # Hand-written ISA reference — the expert SVE/SVE2/SME2 implementation
+    ref_target = isa  # "sve", "sve2", or "sme2"
+    print(f"[baselines] Building {ref_target} target (hand-written reference)...")
+    try:
+        build_target(handle, ref_target)
+        ref_binary = f"{remote_root}/build/{ref_target}/bin/simd_loops"
+    except RuntimeError as e:
+        print(f"  WARNING: {ref_target} build failed: {e}")
+        ref_binary = None
 
     results = {}
 
@@ -115,6 +129,15 @@ def collect_baselines(
                 print(f", autovec={autovec_ms:.1f}ms", end="", flush=True)
             else:
                 print(f", autovec=FAIL", end="", flush=True)
+
+        # Hand-written ISA reference timing
+        if ref_binary:
+            ref_ms = run_loop(handle, ref_binary, num, n)
+            if ref_ms is not None:
+                entry["ref_ms"] = ref_ms
+                print(f", ref={ref_ms:.1f}ms", end="", flush=True)
+            else:
+                print(f", ref=FAIL", end="", flush=True)
 
         print()  # newline
         if entry:
@@ -182,8 +205,10 @@ def main():
     # Print summary
     n_scalar = sum(1 for v in results.values() if "scalar_ms" in v)
     n_autovec = sum(1 for v in results.values() if "autovec_ms" in v)
+    n_ref    = sum(1 for v in results.values() if "ref_ms" in v)
     print(f"  scalar timings:  {n_scalar}/{len(results)}")
     print(f"  autovec timings: {n_autovec}/{len(results)}")
+    print(f"  ref timings:     {n_ref}/{len(results)}  ← hand-written {args.isa}")
 
 
 if __name__ == "__main__":

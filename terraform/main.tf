@@ -18,9 +18,9 @@ provider "aws" {
 variable "build_target" {
   description = "simd-loops make target (scalar, neon, sve, sve2, sme2, all, ...)"
   default     = "sve"
-  # c7g  = Graviton3 (Neoverse V1)  — SVE at 256-bit, no SVE2/SME
-  # c8g  = Graviton4 (Neoverse V2)  — SVE2 at 128-bit, no SME
-  # No AWS instance type supports SME as of early 2026.
+  # c7g  = Graviton3 (Neoverse V1)  — SVE at 256-bit (no SVE2, no SME)
+  # c8g  = Graviton4 (Neoverse V2)  — SVE2 at 128-bit (no SME)
+  # No AWS instance type supports SME/SME2 as of early 2026.
 }
 
 variable "instance_type" {

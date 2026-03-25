@@ -6,7 +6,7 @@ as the candidate, then exercises compile → run → perf → disassemble → su
 No LLM involved.
 
 Usage:
-    python -m eval.test_workflow [--teardown] [--problem loop_001] [--isa sve2]
+    python -m eval.test_workflow [--teardown] [--problem loop_001] [--isa sve]
 """
 
 import argparse
@@ -36,7 +36,7 @@ static void inner_loop_001(struct loop_001_data *restrict data) {
 }
 
 DEFAULT_PROBLEM = "loop_001"
-DEFAULT_ISA = "sve2"
+DEFAULT_ISA = "sve"
 
 
 def run_smoke_test(problem_id: str, isa: str, teardown: bool):

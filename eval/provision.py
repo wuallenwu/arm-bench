@@ -28,7 +28,7 @@ EVAL_CONFIG_PATH = REPO_ROOT / "eval" / "eval_config.json"
 ISA_INSTANCE_MAP = {
     "neon": "c7g.large",
     "sve": "c7g.large",
-    "sve2": "c7g.large",
+    "sve2": "c8g.large",
     "sme2": "c8g.large",
 }
 
