@@ -7,6 +7,7 @@ tools over SSH, then scores the final submission against pre-collected baselines
 Compatible with any LiteLLM-supported model.
 """
 
+import copy
 import json
 import os
 import time
@@ -65,6 +66,75 @@ Example — FP32 SAXPY optimized with SVE:
       d->res = svaddv(svptrue_b32(), acc);
   }
 """
+
+
+def _compress_history(messages: list[dict], keep_full_turns: int = 2) -> list[dict]:
+    """
+    Compress old turns to keep context size bounded.
+
+    The last `keep_full_turns` complete assistant+tool pairs are kept verbatim.
+    Older turns have large payloads replaced with compact summaries:
+      - compile/submit code: replaced with placeholder IF the compile succeeded.
+        Failed compile code is kept verbatim so the model remembers what to avoid.
+      - disassemble asm: always compressed (large, not needed after inspection)
+      - run/perf results: already small, always kept verbatim
+
+    Message structure is preserved exactly (tool_call_ids remain valid).
+    messages[0] = system, messages[1] = initial user — always kept verbatim.
+    """
+    # Find indices of all assistant messages (each marks the start of a turn)
+    assistant_indices = [i for i, m in enumerate(messages) if m["role"] == "assistant"]
+
+    if len(assistant_indices) <= keep_full_turns:
+        return messages  # nothing old enough to compress
+
+    # Build map: tool_call_id → compile success (True/False/None for non-compile)
+    compile_success: dict[str, bool] = {}
+    for msg in messages:
+        if msg["role"] == "tool":
+            try:
+                content = json.loads(msg["content"])
+                if "success" in content:  # compile result
+                    compile_success[msg["tool_call_id"]] = content["success"]
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+    # Everything from this index onward is kept verbatim
+    keep_from = assistant_indices[-keep_full_turns]
+
+    result = []
+    for i, msg in enumerate(messages):
+        if i < keep_from and i >= 2:  # compress; never touch system or initial user
+            msg = copy.deepcopy(msg)
+            if msg["role"] == "assistant" and msg.get("tool_calls"):
+                for tc in msg["tool_calls"]:
+                    if tc["function"]["name"] in ("compile", "submit"):
+                        # Only compress code if the compile succeeded — failed
+                        # attempts must stay visible so the model doesn't repeat them
+                        if compile_success.get(tc["id"], True):
+                            try:
+                                args = json.loads(tc["function"]["arguments"])
+                                code = args.get("code", "")
+                                if len(code) > 100:
+                                    args["code"] = (
+                                        "/* [prior successful attempt: "
+                                        f"{len(code)} chars omitted — "
+                                        "do not resubmit this placeholder] */"
+                                    )
+                                    tc["function"]["arguments"] = json.dumps(args)
+                            except (json.JSONDecodeError, KeyError):
+                                pass
+            elif msg["role"] == "tool":
+                try:
+                    content = json.loads(msg["content"])
+                    if "asm" in content and len(content["asm"]) > 100:
+                        lines = content["asm"].count("\n")
+                        content["asm"] = f"[{lines} lines — omitted from history]"
+                        msg["content"] = json.dumps(content)
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        result.append(msg)
+    return result
 
 
 def build_user_prompt(problem: dict, isa: str) -> str:
@@ -155,13 +225,24 @@ def run_agentic_eval(
         if verbose:
             print(f"\n[Turn {turn+1}/{max_turns}]")
 
-        response = litellm.completion(
-            model=model,
-            messages=messages,
-            tools=schemas,
-            tool_choice="auto",
-            temperature=0.2,
-        )
+        compressed = _compress_history(messages)
+        for _retry in range(6):
+            try:
+                response = litellm.completion(
+                    model=model,
+                    messages=compressed,
+                    tools=schemas,
+                    tool_choice="auto",
+                    temperature=0.2,
+                )
+                break
+            except litellm.RateLimitError as e:
+                wait = 30 * (2 ** _retry)
+                if verbose:
+                    print(f"  [rate limit] sleeping {wait}s: {e}")
+                time.sleep(wait)
+        else:
+            raise RuntimeError("Exceeded retry budget for rate limit")
         msg = response.choices[0].message
         messages.append(msg.model_dump())
 
