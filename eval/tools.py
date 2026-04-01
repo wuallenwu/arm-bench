@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from eval.config import ISA_MAKE_TARGET, REPO_ROOT, load_baselines, ISA_TIER
+from eval.config import ISA_MAKE_TARGET, REPO_ROOT, load_baselines, load_problem_sizes, ISA_TIER
 from eval.provision import InstanceHandle
 
 CANDIDATE_START = "// CANDIDATE_INJECT_START"
@@ -81,6 +81,8 @@ class EvalResult:
     compile_error: str = ""
     runtime_ms: float | None = None
     tool_calls: int = 0
+    # Timing at each PERF_SIZE: {size: runtime_ms}. Populated at submit time.
+    perf_by_size: dict | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -92,6 +94,7 @@ class EvalResult:
             "compile_error": self.compile_error,
             "runtime_ms": self.runtime_ms,
             "tool_calls": self.tool_calls,
+            "perf_by_size": self.perf_by_size,
         }
 
 
@@ -111,6 +114,8 @@ class SIMDTools:
         self.make_target = ISA_MAKE_TARGET[isa]
         self._last_compile_ok = False
         self._tool_calls = 0
+        self._last_candidate_code: str | None = None  # stored for size-specific recompiles
+        self._default_size: int | None = None          # parsed once from source on first use
 
         # Remote paths (on the instance)
         self.remote_root = "~/simd-loops"
@@ -118,6 +123,9 @@ class SIMDTools:
         self.remote_binary = (
             f"{self.remote_root}/build/{self.make_target}/bin/simd_loops"
         )
+
+        # Per-problem test sizes (loaded directly from problem.py, not the full index)
+        self._edge_sizes, self._perf_sizes = load_problem_sizes(problem_id)
 
     # ─── Tool: compile ───────────────────────────────────────────────────────
 
@@ -191,16 +199,20 @@ class SIMDTools:
             return CompileResult(success=False, errors=errors or combined)
 
         self._last_compile_ok = True
+        self._last_candidate_code = code
         return CompileResult(success=True, warnings=warnings)
 
     # ─── Tool: run ───────────────────────────────────────────────────────────
 
-    def run(self, n: int = 100) -> RunResult:
+    def run(self, n: int = 100, size: int | None = None) -> RunResult:
         """
         Run the compiled binary for this loop and report correctness + timing.
 
         Args:
-            n: Number of iterations (more = more stable timing, slower).
+            n:    Number of iterations (more = more stable timing, slower).
+            size: If given, recompile at this input size before running, then
+                  restore the default-size binary afterwards. Useful for testing
+                  correctness and timing at non-default array lengths.
 
         Returns:
             RunResult with correct flag and runtime_ms.
@@ -209,7 +221,10 @@ class SIMDTools:
         if not self._last_compile_ok:
             return RunResult(correct=False, output="No compiled binary — run compile() first.")
 
-        loop_hex = int(self.loop_num)  # decimal loop number
+        if size is not None:
+            return self._run_at_explicit_size(n, size)
+
+        loop_hex = int(self.loop_num)
         time_cmd = (
             f"t0=$(date +%s%N); "
             f"{self.remote_binary} -k {loop_hex} -n {n}; "
@@ -230,9 +245,53 @@ class SIMDTools:
         output_clean = stdout.replace(f"TIME_NS={m.group(0) if m else ''}", "").strip()
         return RunResult(correct=correct, runtime_ms=runtime_ms, output=output_clean)
 
+    def _run_at_explicit_size(self, n: int, size: int) -> RunResult:
+        """
+        Compile candidate at `size`, run n iterations, restore default binary.
+
+        Correctness is reported as "did not abort/crash" rather than matching
+        the hardcoded checksum (which is only valid at the default compiled size).
+        The binary's own output (LOOP_RESULT line) is included for context.
+        """
+        if self._last_candidate_code is None:
+            return RunResult(correct=False, output="No candidate code stored — run compile() first.")
+
+        bin_path = self._compile_at_size(size, have_candidate=True)
+        if bin_path is None:
+            return RunResult(correct=False, output=f"size={size}: compile failed")
+
+        loop_decimal = int(self.loop_num)
+        time_cmd = (
+            f"t0=$(date +%s%N); "
+            f"{bin_path} -k {loop_decimal} -n {n}; "
+            f"rc=$?; "
+            f"t1=$(date +%s%N); "
+            f'echo "TIME_NS=$((t1-t0))"; '
+            f"exit $rc"
+        )
+        rc, stdout, _ = self.handle.run(time_cmd, timeout=300)
+
+        # rc==2 means explicit ABORT (no implementation for this target/size).
+        # Any other non-zero rc or crash is also a failure.
+        # We do NOT use the hardcoded checksum here — it is only valid at the
+        # default SIZE. The binary's LOOP_RESULT output is included for context.
+        ran_ok = (rc != 2 and "ABORT" not in stdout)
+
+        runtime_ms = None
+        m = re.search(r"TIME_NS=(\d+)", stdout)
+        if m:
+            runtime_ms = round(int(m.group(1)) / 1e6, 3)
+
+        output_clean = re.sub(r"TIME_NS=\d+", "", stdout).strip()
+
+        # Restore default binary so subsequent run()/perf() calls work correctly
+        self._compile_at_size(self._get_default_size() or size, have_candidate=True)
+
+        return RunResult(correct=ran_ok, runtime_ms=runtime_ms, output=output_clean)
+
     # ─── Tool: perf ──────────────────────────────────────────────────────────
 
-    def perf(self, n: int = 100) -> PerfResult:
+    def perf(self, n: int = 100, size: int | None = None) -> PerfResult:
         """
         Run perf stat to collect hardware PMU counters.
 
@@ -240,10 +299,12 @@ class SIMDTools:
           - cycles, instructions, IPC
           - r04 = L1D_CACHE accesses, r03 = L1D_CACHE_REFILL (misses)
 
-        Note: L2/L3/branch counters are not exposed by the Nitro hypervisor.
+        Note: L2/L3 counters are not exposed by the Nitro hypervisor.
 
         Args:
-            n: Iteration count.
+            n:    Iteration count.
+            size: If given, recompile at this input size before running, then
+                  restore the default-size binary afterwards.
 
         Returns:
             PerfResult with cycles, instructions, IPC, L1D miss %.
@@ -251,6 +312,9 @@ class SIMDTools:
         self._tool_calls += 1
         if not self._last_compile_ok:
             return PerfResult(raw_output="No compiled binary — run compile() first.")
+
+        if size is not None:
+            return self._perf_at_explicit_size(n, size)
 
         loop_hex = int(self.loop_num)
         # The kernel-versioned perf binary under /usr/lib has PMU support on
@@ -265,7 +329,35 @@ class SIMDTools:
             f"2>&1"
         )
         rc, output, _ = self.handle.run(perf_cmd, timeout=300)
+        return self._parse_perf_output(output)
 
+    def _perf_at_explicit_size(self, n: int, size: int) -> PerfResult:
+        """Compile candidate at `size`, run perf stat, restore default binary."""
+        if self._last_candidate_code is None:
+            return PerfResult(raw_output="No candidate code stored — run compile() first.")
+
+        bin_path = self._compile_at_size(size, have_candidate=True)
+        if bin_path is None:
+            return PerfResult(raw_output=f"size={size}: compile failed")
+
+        loop_decimal = int(self.loop_num)
+        perf_cmd = (
+            f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
+            f"PERF=${{PERF:-perf}}; "
+            f"sudo $PERF stat "
+            f"-e cycles,instructions,r04,r03 "
+            f"{bin_path} -k {loop_decimal} -n {n} "
+            f"2>&1"
+        )
+        rc, output, _ = self.handle.run(perf_cmd, timeout=300)
+
+        # Restore default binary
+        self._compile_at_size(self._get_default_size() or size, have_candidate=True)
+
+        return self._parse_perf_output(output)
+
+    @staticmethod
+    def _parse_perf_output(output: str) -> PerfResult:
         cycles = _parse_perf_counter(output, "cycles")
         instructions = _parse_perf_counter(output, "instructions")
 
@@ -352,7 +444,8 @@ class SIMDTools:
             code: The optimized C implementation to submit.
 
         Returns:
-            EvalResult with correctness, speedup levels, and final score.
+            EvalResult with correctness, speedup levels, final score, and per-size
+            performance data (perf_by_size).
         """
         self._tool_calls += 1
 
@@ -366,7 +459,7 @@ class SIMDTools:
                 tool_calls=self._tool_calls,
             )
 
-        # Run correctness check
+        # Run correctness check at default size
         rr = self.run(n=10)
         if not rr.correct:
             return EvalResult(
@@ -375,7 +468,20 @@ class SIMDTools:
                 tool_calls=self._tool_calls,
             )
 
-        # Authoritative timing: 1000 iterations
+        # Edge-case correctness: sizes from per-problem EDGE_SIZES
+        edge_fail = self._check_edge_sizes()
+        if edge_fail:
+            return EvalResult(
+                correct=False,
+                level=0,
+                compile_error=f"Edge-case correctness failure: {edge_fail}",
+                tool_calls=self._tool_calls,
+            )
+
+        # Performance at larger sizes: collect timing at each PERF_SIZE
+        perf_by_size = self._collect_perf_sizes()
+
+        # Authoritative timing: 1000 iterations at default size
         rr_final = self.run(n=1000)
         runtime_ms = rr_final.runtime_ms
 
@@ -415,7 +521,177 @@ class SIMDTools:
             level=level,
             runtime_ms=runtime_ms,
             tool_calls=self._tool_calls,
+            perf_by_size=perf_by_size if perf_by_size else None,
         )
+
+    # ─── Edge-case and perf-size helpers ─────────────────────────────────────
+
+    def _get_default_size(self) -> int | None:
+        """Parse the default SIZE from the local loop source file (cached)."""
+        if self._default_size is not None:
+            return self._default_size
+        local_loop_file = REPO_ROOT / "loops" / f"loop_{self.loop_num}.c"
+        m = re.search(r"#define SIZE\s+(\d+)", local_loop_file.read_text())
+        if m:
+            self._default_size = int(m.group(1))
+        return self._default_size
+
+    def _run_at_size(self, binary: str, size: int) -> str | None:
+        """
+        Run `binary` compiled with -DSIZE=<size>, return the LOOP_RESULT value
+        string from stdout, or None if the binary aborted.
+        """
+        loop_decimal = int(self.loop_num)
+        cmd = f"{binary} -k {loop_decimal} -n 1 2>&1"
+        rc, stdout, _ = self.handle.run(cmd, timeout=60)
+        if rc == 2:  # ABORT exit code
+            return None
+        m = re.search(r"LOOP_RESULT:\s*(.+)", stdout)
+        return m.group(1).strip() if m else None
+
+    def _compile_at_size(self, size: int, have_candidate: bool) -> str | None:
+        """
+        Compile with -DSIZE=<size>. Returns the binary path on success, None on failure.
+        Uses HAVE_CANDIDATE or HAVE_NATIVE depending on have_candidate flag.
+
+        Strategy: first ensure the target binary exists with all *other* loops'
+        .o files already built (a plain make with no custom EXTRA_FLAGS).  Then
+        recompile only the specific loop .o at the requested size and relink.
+        This avoids triggering a full rebuild where other loops may reject the
+        custom SIZE via _Static_assert (e.g. loop_023 requires SIZE % 16 == 0).
+        """
+        if have_candidate:
+            extra = f"-DHAVE_CANDIDATE -DSIZE={size}"
+            target = self.make_target
+            base_extra = "-DHAVE_CANDIDATE"
+        else:
+            extra = f"-DHAVE_NATIVE -U__ARM_NEON -U__ARM_FEATURE_SVE -U__ARM_FEATURE_SVE2 -U__ARM_FEATURE_SME -DSIZE={size}"
+            target = "c-scalar"
+            base_extra = "-DHAVE_NATIVE -U__ARM_NEON -U__ARM_FEATURE_SVE -U__ARM_FEATURE_SVE2 -U__ARM_FEATURE_SME"
+
+        obj_dir = f"{self.remote_root}/build/{target}/_obj"
+        loop_o  = f"{obj_dir}/loops/loop_{self.loop_num}.o"
+        lnk_o   = f"{obj_dir}/_lnk/loop_{self.loop_num}.o"
+
+        # Step 1: ensure all OTHER loops are already compiled (plain build,
+        # no custom SIZE).  This is a no-op if the binary is already up to date.
+        warmup_cmd = f"cd {self.remote_root} && make {target} EXTRA_FLAGS='{base_extra}' 2>&1"
+        rc, _, _ = self.handle.run(warmup_cmd, timeout=120)
+        if rc != 0:
+            return None  # even the baseline build failed
+
+        # Step 2: recompile only this loop's .o at the requested size, then relink.
+        clean_cmd  = f"rm -f {loop_o} {lnk_o}"
+        relink_cmd = (
+            f"cd {self.remote_root} && {clean_cmd} && "
+            f"make {target} EXTRA_FLAGS='{extra}' 2>&1"
+        )
+        rc, output, _ = self.handle.run(relink_cmd, timeout=120)
+        if rc != 0:
+            return None
+        return f"{self.remote_root}/build/{target}/bin/simd_loops"
+
+    def _check_edge_sizes(self) -> str | None:
+        """
+        Test correctness at each size in EDGE_SIZES (from problem metadata).
+
+        For each size, compares the candidate result against the c-scalar reference.
+        Returns an error string on the first failure, None if all pass.
+        """
+        if not self._edge_sizes:
+            return None  # no edge sizes defined for this problem
+
+        for size in self._edge_sizes:
+            # Compile scalar reference at this size
+            scalar_bin = self._compile_at_size(size, have_candidate=False)
+            if scalar_bin is None:
+                continue  # scalar build failed at this size (e.g. size too large), skip
+
+            # Compile candidate at this size
+            candidate_bin = self._compile_at_size(size, have_candidate=True)
+            if candidate_bin is None:
+                return f"size={size}: candidate failed to compile"
+
+            scalar_result = self._run_at_size(scalar_bin, size)
+            candidate_result = self._run_at_size(candidate_bin, size)
+
+            if candidate_result is None:
+                return f"size={size}: candidate aborted"
+
+            if scalar_result is None:
+                continue  # scalar aborted at this size, can't compare
+
+            # Compare: parse as floats if possible, else string compare
+            try:
+                sv = float(scalar_result.split()[0])
+                cv = float(candidate_result.split()[0])
+                tolerance = max(abs(sv) * 1e-4, 1e-6)
+                if abs(sv - cv) > tolerance:
+                    return f"size={size}: scalar={sv:.6g} candidate={cv:.6g} (mismatch)"
+            except (ValueError, IndexError):
+                if scalar_result != candidate_result:
+                    return f"size={size}: scalar={scalar_result!r} candidate={candidate_result!r} (mismatch)"
+
+        # Restore default-size binary so run()/perf() work after submit
+        default_size = self._get_default_size()
+        if default_size is not None:
+            self._compile_at_size(default_size, have_candidate=True)
+
+        return None  # all edge cases passed
+
+    def _collect_perf_sizes(self) -> dict[int, float | None]:
+        """
+        Run the candidate at each PERF_SIZE and collect timing (ms per iteration).
+        Also verifies correctness at each large size.
+        Returns {size: runtime_ms} for sizes that ran successfully.
+        """
+        if not self._perf_sizes:
+            return {}
+
+        results: dict[int, float | None] = {}
+        loop_decimal = int(self.loop_num)
+
+        for size in self._perf_sizes:
+            bin_path = self._compile_at_size(size, have_candidate=True)
+            if bin_path is None:
+                results[size] = None
+                continue
+
+            # Quick sanity: ensure the binary doesn't abort at this size.
+            # (Full correctness vs scalar is already covered by _check_edge_sizes;
+            # the hardcoded checksum is only valid at the default SIZE.)
+            result_str = self._run_at_size(bin_path, size)
+            if result_str is None:
+                results[size] = None  # aborted
+                continue
+
+            # Timing: 100 iterations
+            time_cmd = (
+                f"t0=$(date +%s%N); "
+                f"{bin_path} -k {loop_decimal} -n 100; "
+                f"rc=$?; "
+                f"t1=$(date +%s%N); "
+                f'echo "TIME_NS=$((t1-t0))"; '
+                f"exit $rc"
+            )
+            rc, stdout, _ = self.handle.run(time_cmd, timeout=600)
+            if rc == 2 or "ABORT" in stdout:
+                results[size] = None  # aborted at this size
+                continue
+
+            m = re.search(r"TIME_NS=(\d+)", stdout)
+            if m:
+                total_ms = int(m.group(1)) / 1e6
+                results[size] = round(total_ms / 100, 4)  # ms per iteration
+            else:
+                results[size] = None
+
+        # Restore default-size binary
+        default_size = self._get_default_size()
+        if default_size is not None:
+            self._compile_at_size(default_size, have_candidate=True)
+
+        return results
 
     # ─── OpenAI-compatible tool schemas ──────────────────────────────────────
 
@@ -452,7 +728,8 @@ class SIMDTools:
                     "name": "run",
                     "description": (
                         "Run the last compiled binary and check correctness + timing. "
-                        "Must call compile() successfully first."
+                        "Must call compile() successfully first. "
+                        "Pass size= to test at a different input array length (recompiles automatically)."
                     ),
                     "parameters": {
                         "type": "object",
@@ -461,6 +738,13 @@ class SIMDTools:
                                 "type": "integer",
                                 "description": "Number of iterations (default 100; more = more stable timing).",
                                 "default": 100,
+                            },
+                            "size": {
+                                "type": "integer",
+                                "description": (
+                                    "Input array size to test (overrides the default compiled size). "
+                                    "Useful for verifying edge cases (e.g. size=1) or large inputs."
+                                ),
                             },
                         },
                     },
@@ -473,6 +757,7 @@ class SIMDTools:
                     "description": (
                         "Run perf stat to collect hardware PMU counters: "
                         "cycles, instructions, IPC, L1D cache miss rate. "
+                        "Pass size= to profile at a larger input size (recompiles automatically). "
                         "Note: L2/L3 counters are not available on Nitro-based Graviton instances."
                     ),
                     "parameters": {
@@ -482,6 +767,13 @@ class SIMDTools:
                                 "type": "integer",
                                 "description": "Number of iterations.",
                                 "default": 100,
+                            },
+                            "size": {
+                                "type": "integer",
+                                "description": (
+                                    "Input array size to test (overrides the default compiled size). "
+                                    "Useful for measuring performance at larger inputs."
+                                ),
                             },
                         },
                     },
@@ -538,9 +830,9 @@ class SIMDTools:
         if name == "compile":
             return self.compile(args["code"]).to_tool_result()
         elif name == "run":
-            return self.run(args.get("n", 100)).to_tool_result()
+            return self.run(args.get("n", 100), size=args.get("size")).to_tool_result()
         elif name == "perf":
-            return self.perf(args.get("n", 100)).to_tool_result()
+            return self.perf(args.get("n", 100), size=args.get("size")).to_tool_result()
         elif name == "disassemble":
             return self.disassemble(args.get("fn")).to_tool_result()
         elif name == "submit":

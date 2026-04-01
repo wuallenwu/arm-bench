@@ -122,7 +122,9 @@ static void inner_loop_035(struct loop_035_data *data) {
 }
 #endif
 
+#ifndef SIZE
 #define SIZE 10000
+#endif
 
 LOOP_DECL(035, SC_SVE_LOOP_ATTR)
 {

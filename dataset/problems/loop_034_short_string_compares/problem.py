@@ -55,3 +55,12 @@ Scalar implementation to optimize:
 
 Write an optimized {isa_upper} implementation. Output only the C function.
 """
+
+# Input sizes for edge-case correctness testing at submit time.
+# Empty list = skip (loop uses non-SIZE parameters or fixed dimensions).
+EDGE_SIZES = [1, 5, 10, 5999, 6001]
+
+# Input sizes for performance measurement at submit time and via perf() tool.
+# Scored against the largest size. Empty list = skip.
+# Capped at ~18000 (sample_json_size is ~20KB; SIZE >= sample_json_size aborts).
+PERF_SIZES = [10000, 18000]

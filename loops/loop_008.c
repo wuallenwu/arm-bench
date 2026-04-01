@@ -171,7 +171,9 @@ static void inner_loop_008(struct loop_008_data *data) {
 }
 #endif
 
+#ifndef SIZE
 #define SIZE 10000
+#endif
 
 LOOP_DECL(008, NS_SVE_LOOP_ATTR)
 {

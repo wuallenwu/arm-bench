@@ -254,7 +254,9 @@ static void inner_loop_023(struct loop_023_data *data) {
 }
 #endif
 
+#ifndef SIZE
 #define SIZE 4096
+#endif
 _Static_assert(SIZE % 16 == 0, "SIZE must be a multiple of 16");
 
 LOOP_DECL(023, NS_SVE_LOOP_ATTR)

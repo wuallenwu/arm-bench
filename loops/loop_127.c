@@ -126,7 +126,9 @@ static void inner_loop_127(struct loop_127_data *restrict data) {
 }
 #endif
 
+#ifndef SIZE
 #define SIZE 10000
+#endif
 
 LOOP_DECL(127, SC_SVE_LOOP_ATTR)
 {

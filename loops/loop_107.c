@@ -200,7 +200,9 @@ static uint256_t build_uint256(uint64_t a, uint64_t b, uint64_t c, uint64_t d) {
   return res;
 }
 
+#ifndef SIZE
 #define SIZE 1000
+#endif
 
 LOOP_DECL(107, SC_SVE_LOOP_ATTR)
 {

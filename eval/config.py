@@ -81,6 +81,12 @@ def load_problems(with_code: bool = True) -> dict:
             if scalar_m:
                 meta["scalar_code"] = scalar_m.strip()
 
+            # Load per-problem test size lists
+            edge = _extract_int_list(text, "EDGE_SIZES")
+            perf = _extract_int_list(text, "PERF_SIZES")
+            meta["edge_sizes"] = edge if edge is not None else []
+            meta["perf_sizes"] = perf if perf is not None else []
+
             # Extract NEON implementation from the loop source file (if present)
             loop_num = pid.split("_")[1]
             loop_src = REPO_ROOT / "loops" / f"loop_{loop_num}.c"
@@ -89,6 +95,19 @@ def load_problems(with_code: bool = True) -> dict:
                 meta["neon_code"] = neon.strip()
 
     return result
+
+
+def _extract_int_list(text: str, var_name: str) -> list[int] | None:
+    """Extract an integer list literal (e.g. EDGE_SIZES = [0, 1, 7]) from Python source."""
+    import ast, re
+    pattern = re.compile(rf"^{var_name}\s*=\s*(\[.*?\])", re.MULTILINE | re.DOTALL)
+    m = pattern.search(text)
+    if not m:
+        return None
+    try:
+        return ast.literal_eval(m.group(1))
+    except (ValueError, SyntaxError):
+        return None
 
 
 def _extract_triple_quoted(text: str, var_name: str) -> str | None:
@@ -137,6 +156,26 @@ def _extract_neon_code(loop_src: Path) -> str | None:
         func_lines.append(lines[i])
 
     return "".join(func_lines) if func_lines else None
+
+
+def load_problem_sizes(problem_id: str) -> tuple[list[int], list[int]]:
+    """
+    Return (edge_sizes, perf_sizes) for a single problem without loading the
+    entire problems index. Reads only that problem's problem.py.
+    """
+    if not PROBLEMS_JSON.exists():
+        return [], []
+    problems_raw = json.loads(PROBLEMS_JSON.read_text())
+    meta = next((p for p in problems_raw if p["id"] == problem_id), None)
+    if meta is None:
+        return [], []
+    problem_py = DATASET_PATH / "problems" / meta.get("dir_name", "") / "problem.py"
+    if not problem_py.exists():
+        return [], []
+    text = problem_py.read_text()
+    edge = _extract_int_list(text, "EDGE_SIZES") or []
+    perf = _extract_int_list(text, "PERF_SIZES") or []
+    return edge, perf
 
 
 def load_baselines(tier: str) -> dict:

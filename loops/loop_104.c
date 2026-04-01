@@ -537,7 +537,9 @@ static void inner_loop_104(struct loop_104_data *restrict input) {
 }
 #endif /* !HAVE_CANDIDATE */
 
+#ifndef SIZE
 #define SIZE 256
+#endif
 
 LOOP_DECL(104, NS_SVE_LOOP_ATTR)
 {

@@ -156,7 +156,9 @@ static void swap(node_t *p1, node_t *p2) {
   n1->next = t;
 }
 
+#ifndef SIZE
 #define SIZE 1000
+#endif
 
 LOOP_DECL(009, NS_SVE_LOOP_ATTR)
 {

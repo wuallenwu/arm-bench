@@ -245,7 +245,9 @@ static void inner_loop_121(struct loop_121_data *input) {
 }
 #endif /* !HAVE_CANDIDATE */
 
+#ifndef SIZE
 #define SIZE 256
+#endif
 
 LOOP_DECL(121, NS_SVE_LOOP_ATTR)
 {

@@ -194,7 +194,9 @@ static void inner_loop_026(struct loop_026_data *restrict data) {
 }
 #endif /* !HAVE_CANDIDATE */
 
+#ifndef SIZE
 #define SIZE 2000
+#endif
 
 LOOP_DECL(026, NS_SVE_LOOP_ATTR)
 {

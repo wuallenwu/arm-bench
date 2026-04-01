@@ -229,7 +229,9 @@ LOOP_ATTR
 }
 #endif /* !HAVE_CANDIDATE */
 
+#ifndef SIZE
 #define SIZE 4096  // Must be a power of two
+#endif
 
 LOOP_DECL(105, SC_SVE_LOOP_ATTR)
 {

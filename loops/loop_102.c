@@ -114,7 +114,9 @@ static void inner_loop_102(struct loop_102_data *restrict input) {
 #endif /* !HAVE_CANDIDATE */
 
 #define MAX_VAL 100
+#ifndef SIZE
 #define SIZE 10000
+#endif
 
 LOOP_DECL(102, NS_SVE_LOOP_ATTR)
 {

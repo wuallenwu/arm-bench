@@ -24,6 +24,14 @@ struct loop_005_data {
   uint32_t checksum;
 };
 
+#if defined(HAVE_CANDIDATE)
+// CANDIDATE_INJECT_START
+static void inner_loop_005(struct loop_005_data *restrict data) {
+    /* CANDIDATE: the eval harness injects the LLM implementation here */
+    (void)data;
+}
+// CANDIDATE_INJECT_END
+#else
 static void inner_loop_005(struct loop_005_data *restrict data) {
   uint8_t *p = data->p;
   uint8_t *lmt = data->lmt;
@@ -37,8 +45,11 @@ static void inner_loop_005(struct loop_005_data *restrict data) {
   }
   data->checksum = res;
 }
+#endif
 
+#ifndef SIZE
 #define SIZE 4000
+#endif
 
 LOOP_DECL(005, NS_SVE_LOOP_ATTR)
 {

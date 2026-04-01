@@ -138,6 +138,7 @@ typedef int (*loop_function_t)(int);
 #ifndef FINALISE_LOOP_I
 #define FINALISE_LOOP_I(loop_n, result, format_str, exp_val, obt_val)        \
 {                                                                            \
+  printf("LOOP_RESULT: " format_str "\n", (obt_val));                       \
   if (result) {                                                              \
     printf(" - Checksum correct.\n");                                        \
   } else {                                                                   \
@@ -150,6 +151,7 @@ typedef int (*loop_function_t)(int);
 #ifndef FINALISE_LOOP_F
 #define FINALISE_LOOP_F(loop_n, result, format_str, exp_val, range, obt_val) \
 {                                                                            \
+  printf("LOOP_RESULT: " format_str "\n", (obt_val));                       \
   if (result) {                                                              \
     printf(" - Checksum correct.\n");                                        \
   } else {                                                                   \
@@ -162,6 +164,7 @@ typedef int (*loop_function_t)(int);
 #ifndef FINALISE_LOOP_FP64
 #define FINALISE_LOOP_FP64(loop_n, result, b_out, b_exp, format_str, exp_out, exp_exp, obt_out, obt_exp) \
 {                                                                                                        \
+  printf("LOOP_RESULT: " format_str " " format_str "\n", (obt_out), (obt_exp));                        \
   if (result) {                                                                                          \
     printf(" - Checksum correct.\n");                                                                    \
   } else {                                                                                               \

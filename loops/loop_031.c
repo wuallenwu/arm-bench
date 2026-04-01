@@ -141,7 +141,9 @@ LOOP_ATTR
 }
 #endif /* !HAVE_CANDIDATE */
 
+#ifndef SIZE
 #define SIZE 15600
+#endif
 
 LOOP_DECL(031, SC_SVE_LOOP_ATTR)
 {

@@ -900,7 +900,9 @@ static void inner_loop_123(struct loop_123_data *restrict input) {
 }
 #endif /* !HAVE_CANDIDATE */
 
+#ifndef SIZE
 #define SIZE 256  // must be a multiple of SVLs
+#endif
 
 LOOP_DECL(123, NS_SVE_LOOP_ATTR)
 {

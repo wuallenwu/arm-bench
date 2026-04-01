@@ -72,3 +72,11 @@ Scalar implementation to optimize:
 
 Write an optimized {isa_upper} implementation. Output only the C function.
 """
+
+# Input sizes for edge-case correctness testing at submit time.
+# Empty list = skip (loop uses non-SIZE parameters or fixed dimensions).
+EDGE_SIZES = [0, 1, 7, 9999, 10001]
+
+# Input sizes for performance measurement at submit time and via perf() tool.
+# Scored against the largest size. Empty list = skip.
+PERF_SIZES = [250000, 500000]
