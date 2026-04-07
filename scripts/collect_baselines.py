@@ -5,28 +5,38 @@ Builds scalar and autovec-sve2 targets on the instance, runs each loop,
 and records timing to baselines/{tier}.json. These timings anchor the
 speedup calculations in EvalResult.
 
-Run once after provisioning. Safe to re-run (overwrites existing baselines).
+Timing format: ms per iteration at the largest PERF_SIZE for each problem.
+For loops with no PERF_SIZES (fixed-dimension kernels), falls back to
+ms per iteration at the default compiled-in size with n=100 iterations.
+
+This matches the scoring in eval/tools.py submit(), which also uses the
+largest PERF_SIZE result as the authoritative runtime_ms.
+
+Run once after provisioning (or after changing PERF_SIZES). Safe to re-run.
 
 Usage:
     python scripts/collect_baselines.py --isa sve2
     python scripts/collect_baselines.py --isa sme2
     python scripts/collect_baselines.py --isa sve2 --loop 001   # single loop
-    python scripts/collect_baselines.py --isa sve2 --n 2000     # iteration count
+    python scripts/collect_baselines.py --isa sve2 --n 100      # iteration count
 """
 
 import argparse
 import json
 import re
+import sys
 import time
 from pathlib import Path
 
-from eval.config import REPO_ROOT, load_problems, ISA_TIER
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from eval.config import REPO_ROOT, load_problems, ISA_TIER, load_problem_sizes
 from eval.provision import get_or_provision, get_running_instance, InstanceHandle
 
 BASELINES_DIR = REPO_ROOT / "baselines"
 
-# Iteration count used for baseline measurements
-DEFAULT_N = 1000
+# Iteration count for timing measurements (per-size; total wall time ≈ n × ms_per_iter)
+DEFAULT_N = 10
 
 
 def build_target(handle: InstanceHandle, target: str, extra_flags: str = ""):
@@ -39,10 +49,50 @@ def build_target(handle: InstanceHandle, target: str, extra_flags: str = ""):
     return output
 
 
+def compile_loop_at_size(
+    handle: InstanceHandle,
+    loop_num: str,
+    target: str,
+    base_extra_flags: str,
+    size: int,
+) -> str | None:
+    """
+    Recompile a single loop at a specific SIZE without rebuilding all other loops.
+
+    Mirrors the incremental strategy in SIMDTools._compile_at_size: first warm-up
+    builds all OTHER loops at the baseline flags, then recompiles just this loop's
+    .o at -DSIZE={size} and relinks.  This avoids _Static_assert failures in other
+    loops that have their own SIZE constraints.
+
+    Returns the binary path on success, None on failure.
+    """
+    remote_root = "~/simd-loops"
+    obj_dir = f"{remote_root}/build/{target}/_obj"
+    loop_o = f"{obj_dir}/loops/loop_{loop_num}.o"
+    lnk_o = f"{obj_dir}/_lnk/loop_{loop_num}.o"
+
+    # Step 1: ensure all other loops are compiled at the base flags (no-op if up to date)
+    warmup_cmd = f"cd {remote_root} && make {target} EXTRA_FLAGS='{base_extra_flags}' 2>&1"
+    rc, _, _ = handle.run(warmup_cmd, timeout=180)
+    if rc != 0:
+        return None
+
+    # Step 2: recompile just this loop at the requested SIZE, then relink
+    sized_flags = f"{base_extra_flags} -DSIZE={size}"
+    relink_cmd = (
+        f"cd {remote_root} && rm -f {loop_o} {lnk_o} && "
+        f"make {target} EXTRA_FLAGS='{sized_flags}' 2>&1"
+    )
+    rc, _, _ = handle.run(relink_cmd, timeout=180)
+    if rc != 0:
+        return None
+    return f"{remote_root}/build/{target}/bin/simd_loops"
+
+
 def run_loop(handle: InstanceHandle, binary: str, loop_num: str, n: int) -> float | None:
     """
-    Run a loop and return timing in milliseconds.
-    loop_num is decimal, e.g. "001" → int 1 → hex not needed, main.c uses decimal.
+    Run a loop and return ms per iteration (total_ms / n).
+    Returns None if the checksum is wrong or the run fails.
     """
     loop_decimal = int(loop_num)
     time_cmd = (
@@ -53,14 +103,17 @@ def run_loop(handle: InstanceHandle, binary: str, loop_num: str, n: int) -> floa
         f'echo "TIME_NS=$((t1-t0))"; '
         f"exit $rc"
     )
-    rc, stdout, _ = handle.run(time_cmd, timeout=300)
+    rc, stdout, _ = handle.run(time_cmd, timeout=600)
 
-    if "Checksum correct." not in stdout:
-        return None  # wrong result
+    # rc=0: correct checksum; rc=1: wrong checksum (expected at non-default SIZE)
+    # both mean the loop ran; rc=2 = ABORT (alloc fail / no impl)
+    if rc == 2 or "ABORT" in stdout:
+        return None
 
     m = re.search(r"TIME_NS=(\d+)", stdout)
     if m:
-        return round(int(m.group(1)) / 1e6, 3)
+        total_ms = int(m.group(1)) / 1e6
+        return round(total_ms / n, 4)  # ms per iteration
     return None
 
 
@@ -73,77 +126,110 @@ def collect_baselines(
     """
     Build scalar, autovec, and hand-written ISA targets; run all problems.
 
-    Returns:
-        { "loop_001": { "scalar_ms": 9.4, "autovec_ms": 7.0, "ref_ms": 2.1 }, ... }
+    Timing is measured at the largest PERF_SIZE for each problem (cache-busting,
+    DRAM-bound), matching the scoring in eval/tools.py submit().  For loops with
+    no PERF_SIZES (fixed-dimension kernels), the default compiled-in size is used.
 
-    ref_ms is the hand-written ISA reference (sve/sve2/sme2 build), which is
-    the primary target for agents to beat.
+    All values are stored as ms per iteration so they are directly comparable
+    to the runtime_ms values reported by submit().
+
+    Returns:
+        {
+          "loop_001": {
+            "scalar_ms": 8.3,   # ms/iter at largest PERF_SIZE (or default size)
+            "autovec_ms": 4.1,
+            "ref_ms": 2.0,
+            "perf_size": 16000000  # size used for timing (0 = default)
+          }, ...
+        }
     """
     tier = ISA_TIER.get(isa, "c7g")
     remote_root = "~/simd-loops"
 
-    print(f"\n[baselines] Building c-scalar target (HAVE_NATIVE)...")
-    build_target(handle, "c-scalar")
-    scalar_binary = f"{remote_root}/build/c-scalar/bin/simd_loops"
-
     autovec_target = "autovec-sve2" if isa in ("sve2", "sme2") else "autovec-sve"
-    print(f"[baselines] Building {autovec_target} target...")
-    try:
-        build_target(handle, autovec_target)
-        autovec_binary = f"{remote_root}/build/{autovec_target}/bin/simd_loops"
-    except RuntimeError as e:
-        print(f"  WARNING: {autovec_target} build failed: {e}")
-        autovec_binary = None
-
-    # Hand-written ISA reference — the expert SVE/SVE2/SME2 implementation
     ref_target = isa  # "sve", "sve2", or "sme2"
-    print(f"[baselines] Building {ref_target} target (hand-written reference)...")
-    try:
-        build_target(handle, ref_target)
-        ref_binary = f"{remote_root}/build/{ref_target}/bin/simd_loops"
-    except RuntimeError as e:
-        print(f"  WARNING: {ref_target} build failed: {e}")
-        ref_binary = None
+
+    # The Makefile already injects -DHAVE_NATIVE, -DHAVE_AUTOVEC, etc. per target.
+    # EXTRA_FLAGS only needs to carry -DSIZE=N for the sized recompilations.
+    # Use empty base flags so the warm-up build matches a plain `make <target>`.
+    target_base_flags = {
+        "c-scalar": "",
+        autovec_target: "",
+        ref_target: "",
+    }
+
+    # Warm-up: build all targets at default size once (populates all other loops' .o files)
+    print(f"\n[baselines] Warm-up builds...")
+    for tgt, flags in target_base_flags.items():
+        print(f"  make {tgt}...", end="", flush=True)
+        try:
+            build_target(handle, tgt, flags)
+            print(" OK")
+        except RuntimeError as e:
+            print(f" FAIL: {e}")
 
     results = {}
 
     for pid in problem_ids:
         num = pid.split("_")[1]  # "loop_001" → "001"
-        entry = {}
+        entry: dict = {}
 
-        print(f"  {pid}: ", end="", flush=True)
+        # Determine the size to use for this problem
+        _, perf_sizes = load_problem_sizes(pid)
+        perf_size = max(perf_sizes) if perf_sizes else None
+        size_label = f"size={perf_size}" if perf_size else "default-size"
 
-        # Scalar timing
-        scalar_ms = run_loop(handle, scalar_binary, num, n)
-        if scalar_ms is not None:
-            entry["scalar_ms"] = scalar_ms
-            print(f"scalar={scalar_ms:.1f}ms", end="", flush=True)
-        else:
-            print(f"scalar=FAIL", end="", flush=True)
+        print(f"  {pid} ({size_label}): ", end="", flush=True)
 
-        # Autovec timing
-        if autovec_binary:
-            autovec_ms = run_loop(handle, autovec_binary, num, n)
-            if autovec_ms is not None:
-                entry["autovec_ms"] = autovec_ms
-                print(f", autovec={autovec_ms:.1f}ms", end="", flush=True)
+        for tgt_key, base_flags in target_base_flags.items():
+            label = {
+                "c-scalar": "scalar",
+                autovec_target: "autovec",
+                ref_target: "ref",
+            }[tgt_key]
+            ms_key = f"{label}_ms"
+
+            if perf_size is not None:
+                # Recompile just this loop at the PERF_SIZE and run
+                binary = compile_loop_at_size(handle, num, tgt_key, base_flags, perf_size)
+                if binary is None:
+                    print(f"{label}=FAIL(compile) ", end="", flush=True)
+                    continue
+                ms = run_loop(handle, binary, num, n)
             else:
-                print(f", autovec=FAIL", end="", flush=True)
+                # No PERF_SIZES — use the default-size binary already built
+                binary = f"{remote_root}/build/{tgt_key}/bin/simd_loops"
+                ms = run_loop(handle, binary, num, n)
 
-        # Hand-written ISA reference timing
-        if ref_binary:
-            ref_ms = run_loop(handle, ref_binary, num, n)
-            if ref_ms is not None:
-                entry["ref_ms"] = ref_ms
-                print(f", ref={ref_ms:.1f}ms", end="", flush=True)
+            if ms is not None:
+                entry[ms_key] = ms
+                print(f"{label}={ms:.2f}ms/iter ", end="", flush=True)
             else:
-                print(f", ref=FAIL", end="", flush=True)
+                print(f"{label}=FAIL ", end="", flush=True)
+
+        if perf_size is not None:
+            entry["perf_size"] = perf_size
 
         print()  # newline
         if entry:
             results[pid] = entry
 
+        # Restore the default-size binaries so the next loop's warm-up is a no-op
+        if perf_size is not None:
+            for tgt_key, base_flags in target_base_flags.items():
+                compile_loop_at_size(handle, num, tgt_key, base_flags,
+                                     _read_default_size(num) or perf_size)
+
     return results
+
+
+def _read_default_size(loop_num: str) -> int | None:
+    """Parse #define SIZE N from the local loop source file."""
+    src = REPO_ROOT / "loops" / f"loop_{loop_num}.c"
+    if not src.exists():
+        return None
+    m = re.search(r"#define SIZE\s+(\d+)", src.read_text())
+    return int(m.group(1)) if m else None
 
 
 def main():

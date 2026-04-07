@@ -438,7 +438,11 @@ class SIMDTools:
 
     def submit(self, code: str) -> EvalResult:
         """
-        Final submission: compile, run 1000 iterations, and score against baselines.
+        Final submission: compile, check correctness, score against baselines.
+
+        Authoritative timing uses the largest PERF_SIZE (cache-busting, DRAM-bound)
+        so that speedups are measured against stable, memory-bandwidth-limited runs.
+        Falls back to the default compiled-in size if no PERF_SIZES are defined.
 
         Args:
             code: The optimized C implementation to submit.
@@ -481,9 +485,17 @@ class SIMDTools:
         # Performance at larger sizes: collect timing at each PERF_SIZE
         perf_by_size = self._collect_perf_sizes()
 
-        # Authoritative timing: 1000 iterations at default size
-        rr_final = self.run(n=1000)
-        runtime_ms = rr_final.runtime_ms
+        # Authoritative timing: use the largest PERF_SIZE result (ms/iter at
+        # cache-busting size). Falls back to 100 iters at the default compiled
+        # size for loops that have no PERF_SIZES (fixed-dimension, etc.).
+        runtime_ms: float | None = None
+        if self._perf_sizes and perf_by_size:
+            valid = {s: ms for s, ms in perf_by_size.items() if ms is not None}
+            if valid:
+                runtime_ms = valid[max(valid)]  # ms/iter at largest PERF_SIZE
+        if runtime_ms is None:
+            rr_final = self.run(n=100)
+            runtime_ms = round(rr_final.runtime_ms / 100, 4) if rr_final.runtime_ms else None
 
         # Load baselines
         tier = ISA_TIER.get(self.isa, "c7g")
@@ -665,10 +677,10 @@ class SIMDTools:
                 results[size] = None  # aborted
                 continue
 
-            # Timing: 100 iterations
+            # Timing: 10 iterations (each ~10ms → ~0.1s total per size)
             time_cmd = (
                 f"t0=$(date +%s%N); "
-                f"{bin_path} -k {loop_decimal} -n 100; "
+                f"{bin_path} -k {loop_decimal} -n 10; "
                 f"rc=$?; "
                 f"t1=$(date +%s%N); "
                 f'echo "TIME_NS=$((t1-t0))"; '
@@ -682,7 +694,7 @@ class SIMDTools:
             m = re.search(r"TIME_NS=(\d+)", stdout)
             if m:
                 total_ms = int(m.group(1)) / 1e6
-                results[size] = round(total_ms / 100, 4)  # ms per iteration
+                results[size] = round(total_ms / 10, 4)  # ms per iteration
             else:
                 results[size] = None
 

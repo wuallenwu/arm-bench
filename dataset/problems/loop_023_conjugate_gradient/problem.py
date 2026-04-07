@@ -72,4 +72,4 @@ EDGE_SIZES = [0, 1, 3, 4095, 4097]
 
 # Input sizes for performance measurement at submit time and via perf() tool.
 # Scored against the largest size. Empty list = skip.
-PERF_SIZES = [250000, 600000]
+PERF_SIZES = [1000000, 4000000]
