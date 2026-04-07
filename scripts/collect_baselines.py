@@ -71,7 +71,17 @@ def compile_loop_at_size(
     loop_o = f"{obj_dir}/loops/loop_{loop_num}.o"
     lnk_o = f"{obj_dir}/_lnk/loop_{loop_num}.o"
 
-    # Step 1: ensure all other loops are compiled at the base flags (no-op if up to date)
+    # Step 1: recreate any missing _lnk symlinks using an absolute path so ~ expands
+    # correctly inside the SSH for-loop.  ln -sf is idempotent — safe to always run.
+    lnk_dir = f"{obj_dir}/_lnk"
+    restore_lnk = (
+        f"cd {remote_root} && "
+        f"for f in build/{target}/_obj/loops/*.o build/{target}/_obj/common/*.o; do "
+        f"  [ -f \"$f\" ] && ln -sf \"$PWD/$f\" \"build/{target}/_obj/_lnk/$(basename $f)\" 2>/dev/null || true; "
+        f"done"
+    )
+    handle.run(restore_lnk, timeout=30)
+
     warmup_cmd = f"cd {remote_root} && make {target} EXTRA_FLAGS='{base_extra_flags}' 2>&1"
     rc, _, _ = handle.run(warmup_cmd, timeout=180)
     if rc != 0:

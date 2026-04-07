@@ -104,6 +104,15 @@ def compile_at_size(handle, loop_num: str, target: str, size: int, remote_root: 
     loop_o = f"{obj_dir}/loops/loop_{loop_num}.o"
     lnk_o = f"{obj_dir}/_lnk/loop_{loop_num}.o"
 
+    # Recreate any missing _lnk symlinks using $PWD so paths resolve correctly over SSH.
+    restore_lnk = (
+        f"cd {remote_root} && "
+        f"for f in build/{target}/_obj/loops/*.o build/{target}/_obj/common/*.o; do "
+        f"  [ -f \"$f\" ] && ln -sf \"$PWD/$f\" \"build/{target}/_obj/_lnk/$(basename $f)\" 2>/dev/null || true; "
+        f"done"
+    )
+    handle.run(restore_lnk, timeout=30)
+
     # Warm-up (builds all OTHER loops at default flags — no-op if up to date)
     rc, _, _ = handle.run(f"cd {remote_root} && make {target} 2>&1", timeout=180)
     if rc != 0:
