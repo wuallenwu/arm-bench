@@ -159,6 +159,17 @@ class SIMDTools:
         """
         self._tool_calls += 1
 
+        # Catch history-compression placeholders before wasting an SSH round-trip
+        if "[prior successful attempt:" in code and "omitted" in code:
+            return CompileResult(
+                success=False,
+                errors=(
+                    "You submitted a history-compression placeholder, not real code. "
+                    "The prior binary is still compiled on the remote — call run() or perf() "
+                    "to test it, or write a fresh SVE implementation to compile()."
+                ),
+            )
+
         # 1. Patch the source file locally and upload it
         local_loop_file = REPO_ROOT / "loops" / f"loop_{self.loop_num}.c"
         source = local_loop_file.read_text()

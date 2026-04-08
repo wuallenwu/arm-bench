@@ -118,8 +118,45 @@ def _compress_history(messages: list[dict], keep_full_turns: int = 2) -> list[di
     # Everything from this index onward is kept verbatim
     keep_from = assistant_indices[-keep_full_turns]
 
+    # Build a compact state recap from the messages being compressed, so the agent
+    # knows its current situation without needing to see the old code.
+    last_correct_run: dict | None = None
+    last_perf: dict | None = None
+    for msg in messages[:keep_from]:
+        if msg["role"] == "tool":
+            try:
+                content = json.loads(msg["content"])
+                if "correct" in content and content.get("correct"):
+                    last_correct_run = content
+                if "ipc" in content:
+                    last_perf = content
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+    recap_parts = ["[History compressed — earlier turns omitted to save context.]"]
+    if last_correct_run:
+        recap_parts.append(
+            f"Your last correct run: runtime_ms={last_correct_run.get('runtime_ms')}."
+        )
+    if last_perf:
+        recap_parts.append(
+            f"Your last perf result: IPC={last_perf.get('ipc')}, "
+            f"task_clock_ms={last_perf.get('task_clock_ms')}, "
+            f"cache_misses_per_iter={last_perf.get('cache_misses_per_iter')}."
+        )
+    recap_parts.append(
+        "The most recently compiled binary is still active on the remote — "
+        "call run() or perf() to test it, or compile() a new version to improve."
+    )
+    recap_msg = {"role": "user", "content": " ".join(recap_parts)}
+
     result = []
+    recap_inserted = False
     for i, msg in enumerate(messages):
+        # Insert the recap just before the verbatim section starts
+        if i == keep_from and not recap_inserted:
+            result.append(recap_msg)
+            recap_inserted = True
         if i < keep_from and i >= 2:  # compress; never touch system or initial user
             msg = copy.deepcopy(msg)
             if msg["role"] == "assistant" and msg.get("tool_calls"):
@@ -310,14 +347,15 @@ def run_agentic_eval(
                 "content": json.dumps(result_dict),
             })
 
-            # Capture submit result
+            # Capture submit result — only lock in if it actually compiled and ran
             if fn_name == "submit":
                 er = EvalResult(**{k: result_dict[k] for k in EvalResult.__dataclass_fields__
                                    if k in result_dict})
                 er.tool_calls = tools._tool_calls
-                final_result = er
+                if not er.compile_error:  # ignore failed submits (e.g. placeholder)
+                    final_result = er
 
-    # If agent never called submit, force a final run with last compiled code
+    # If agent never submitted successfully, force a final run with last compiled code
     if final_result is None:
         if verbose:
             print("\n[Max turns reached — forcing final scoring run]")
