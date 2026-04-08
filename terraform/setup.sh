@@ -18,7 +18,9 @@ apt-get install -y \
     wget \
     gnupg \
     lsb-release \
-    software-properties-common
+    software-properties-common \
+    linux-tools-aws \
+    linux-tools-common
 
 # Install LLVM 18 from apt.llvm.org (Ubuntu 22.04 "jammy" ships clang-14 by
 # default; clang-17+ is needed for SVE2 / SME2 intrinsics).

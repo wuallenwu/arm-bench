@@ -26,20 +26,28 @@ SYSTEM_PROMPT = """\
 You are an expert AArch64 SIMD programmer. Your task is to write an optimized
 implementation of a given loop kernel for {isa_desc}.
 
-You have access to four tools:
+You have access to these tools:
   - compile(code): Inject and compile your C implementation. Check for errors.
-  - run(n): Run the compiled binary (n iterations). Check correctness (checksum).
-  - perf(n): Collect hardware PMU counters (cycles, IPC, L1D miss rate).
-  - disassemble(fn): See the generated assembly for a specific function.
+  - run(n): Run the compiled binary (n iterations). Verifies correctness via checksum.
+  - perf(n): Collect hardware PMU counters: cycles, IPC, task_clock_ms (on-CPU ms/iter).
+  - disassemble(fn): See the generated AArch64 assembly for a specific function.
   - submit(code): Submit your final implementation for scoring.
 
-Guidelines:
+Workflow — follow this order:
+  1. compile() your first attempt.
+  2. run() to verify correctness. Fix any checksum failures before continuing.
+  3. perf() after every correct implementation to measure IPC and task_clock_ms.
+     - IPC < 1.5 on a SIMD kernel usually means poor vectorization or memory bottleneck.
+     - task_clock_ms is on-CPU time per iteration — use it to compare implementations.
+  4. disassemble() if you want to confirm which SVE instructions were generated.
+  5. Iterate: if IPC is low or task_clock_ms is high, try a different approach and perf() again.
+  6. submit() once you have a correct implementation you are happy with.
+
+Key rules:
   - The function signature must be preserved exactly.
   - The `res` field in the data struct is the checksum — it must match the scalar output.
-  - Use compile() first, then run() to verify correctness, then optimize.
-  - Use disassemble() to inspect generated instructions and verify vectorization.
-  - Call submit() when you are satisfied — this triggers final scoring.
-  - Be efficient: fewer tool calls is better, but correctness comes first.
+  - Always call perf() after confirming correctness — do not submit without profiling.
+  - Compare task_clock_ms across attempts to pick the fastest correct version.
 """
 
 # One-shot example shown in the user prompt
@@ -280,7 +288,8 @@ def run_agentic_eval(
                 elif fn_name == "perf":
                     ipc = result_dict.get("ipc")
                     miss = result_dict.get("l1d_miss_pct")
-                    print(f"  ← perf: IPC={ipc}, L1D_miss={miss}%")
+                    task_ms = result_dict.get("task_clock_ms")
+                    print(f"  ← perf: IPC={ipc}, L1D_miss={miss}%, task_clock={task_ms}ms/iter")
                 else:
                     print(f"  ← {fn_name}: {str(result_dict)[:100]}")
 

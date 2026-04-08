@@ -50,6 +50,7 @@ class PerfResult:
     instructions: int | None = None
     ipc: float | None = None
     l1d_miss_pct: float | None = None
+    task_clock_ms: float | None = None  # on-CPU ms per iteration (excludes scheduler idle)
     raw_output: str = ""
 
     def to_tool_result(self) -> dict:
@@ -58,6 +59,7 @@ class PerfResult:
             "instructions": self.instructions,
             "ipc": self.ipc,
             "l1d_miss_pct": self.l1d_miss_pct,
+            "task_clock_ms": self.task_clock_ms,
             "raw_output": self.raw_output.strip(),
         }
 
@@ -126,6 +128,18 @@ class SIMDTools:
 
         # Per-problem test sizes (loaded directly from problem.py, not the full index)
         self._edge_sizes, self._perf_sizes = load_problem_sizes(problem_id)
+
+        # Restore the remote loop file to the clean local stub so any candidate
+        # code left by a previous session doesn't pollute this session's compiles.
+        self._restore_stub()
+
+    def _restore_stub(self):
+        """Rsync all local loop files to remote, clearing any injected candidate code."""
+        self.handle.rsync_to(
+            str(REPO_ROOT / "loops"),
+            f"{self.remote_root}/loops",
+            excludes=["*.o", "build"],
+        )
 
     # ─── Tool: compile ───────────────────────────────────────────────────────
 
@@ -271,11 +285,10 @@ class SIMDTools:
         )
         rc, stdout, _ = self.handle.run(time_cmd, timeout=300)
 
-        # rc==2 means explicit ABORT (no implementation for this target/size).
-        # Any other non-zero rc or crash is also a failure.
-        # We do NOT use the hardcoded checksum here — it is only valid at the
-        # default SIZE. The binary's LOOP_RESULT output is included for context.
-        ran_ok = (rc != 2 and "ABORT" not in stdout)
+        # rc==0: correct checksum. rc==1: wrong checksum (expected at non-default SIZE).
+        # rc==2 or "ABORT": explicit abort (no implementation / alloc fail).
+        # Any other rc (e.g. 132=SIGILL, 139=SIGSEGV) means the binary crashed.
+        ran_ok = rc in (0, 1) and "ABORT" not in stdout
 
         runtime_ms = None
         m = re.search(r"TIME_NS=(\d+)", stdout)
@@ -307,7 +320,8 @@ class SIMDTools:
                   restore the default-size binary afterwards.
 
         Returns:
-            PerfResult with cycles, instructions, IPC, L1D miss %.
+            PerfResult with cycles, instructions, IPC, L1D miss %, and task_clock_ms
+            (on-CPU milliseconds per iteration, excluding scheduler idle time).
         """
         self._tool_calls += 1
         if not self._last_compile_ok:
@@ -324,12 +338,12 @@ class SIMDTools:
             f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
             f"PERF=${{PERF:-perf}}; "
             f"sudo $PERF stat "
-            f"-e cycles,instructions,r04,r03 "
+            f"-e cycles,instructions,r04,r03,task-clock "
             f"{self.remote_binary} -k {loop_hex} -n {n} "
             f"2>&1"
         )
         rc, output, _ = self.handle.run(perf_cmd, timeout=300)
-        return self._parse_perf_output(output)
+        return self._parse_perf_output(output, n)
 
     def _perf_at_explicit_size(self, n: int, size: int) -> PerfResult:
         """Compile candidate at `size`, run perf stat, restore default binary."""
@@ -345,7 +359,7 @@ class SIMDTools:
             f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
             f"PERF=${{PERF:-perf}}; "
             f"sudo $PERF stat "
-            f"-e cycles,instructions,r04,r03 "
+            f"-e cycles,instructions,r04,r03,task-clock "
             f"{bin_path} -k {loop_decimal} -n {n} "
             f"2>&1"
         )
@@ -354,10 +368,10 @@ class SIMDTools:
         # Restore default binary
         self._compile_at_size(self._get_default_size() or size, have_candidate=True)
 
-        return self._parse_perf_output(output)
+        return self._parse_perf_output(output, n)
 
     @staticmethod
-    def _parse_perf_output(output: str) -> PerfResult:
+    def _parse_perf_output(output: str, n: int = 1) -> PerfResult:
         cycles = _parse_perf_counter(output, "cycles")
         instructions = _parse_perf_counter(output, "instructions")
 
@@ -374,11 +388,24 @@ class SIMDTools:
         if l1d_accesses and l1d_misses and l1d_accesses > 0:
             l1d_miss_pct = round(100.0 * l1d_misses / l1d_accesses, 2)
 
+        # task-clock: on-CPU time per iteration (excludes time sleeping/preempted).
+        # Older perf: "   1,234.56 msec task-clock"  (value in ms)
+        # Newer perf: "   1234567  task-clock"        (value in nanoseconds)
+        task_clock_ms = None
+        m = re.search(r"([\d,]+\.?\d*)\s+msec\s+task-clock", output)
+        if m and n > 0:
+            task_clock_ms = round(float(m.group(1).replace(",", "")) / n, 4)
+        else:
+            raw_ns = _parse_perf_counter(output, "task-clock")
+            if raw_ns is not None and n > 0:
+                task_clock_ms = round(raw_ns / n / 1e6, 4)
+
         return PerfResult(
             cycles=cycles,
             instructions=instructions,
             ipc=ipc,
             l1d_miss_pct=l1d_miss_pct,
+            task_clock_ms=task_clock_ms,
             raw_output=output,
         )
 
@@ -768,7 +795,8 @@ class SIMDTools:
                     "name": "perf",
                     "description": (
                         "Run perf stat to collect hardware PMU counters: "
-                        "cycles, instructions, IPC, L1D cache miss rate. "
+                        "cycles, instructions, IPC, L1D cache miss rate, and task_clock_ms "
+                        "(on-CPU milliseconds per iteration — more precise than run() wall-clock timing). "
                         "Pass size= to profile at a larger input size (recompiles automatically). "
                         "Note: L2/L3 counters are not available on Nitro-based Graviton instances."
                     ),
