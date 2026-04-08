@@ -83,6 +83,7 @@ class EvalResult:
     compile_error: str = ""
     runtime_ms: float | None = None
     tool_calls: int = 0
+    explanation: str = ""   # agent's reasoning about its approach (from submit)
     # Timing at each PERF_SIZE: {size: runtime_ms}. Populated at submit time.
     perf_by_size: dict | None = None
 
@@ -96,6 +97,7 @@ class EvalResult:
             "compile_error": self.compile_error,
             "runtime_ms": self.runtime_ms,
             "tool_calls": self.tool_calls,
+            "explanation": self.explanation,
             "perf_by_size": self.perf_by_size,
         }
 
@@ -115,6 +117,7 @@ class SIMDTools:
         self.loop_num = problem_id.split("_")[1]   # "loop_001" → "001"
         self.make_target = ISA_MAKE_TARGET[isa]
         self._last_compile_ok = False
+        self._binary_exists = False   # True once any compile has ever succeeded this session
         self._tool_calls = 0
         self._last_candidate_code: str | None = None  # stored for size-specific recompiles
         self._default_size: int | None = None          # parsed once from source on first use
@@ -213,6 +216,7 @@ class SIMDTools:
             return CompileResult(success=False, errors=errors or combined)
 
         self._last_compile_ok = True
+        self._binary_exists = True
         self._last_candidate_code = code
         return CompileResult(success=True, warnings=warnings)
 
@@ -232,7 +236,7 @@ class SIMDTools:
             RunResult with correct flag and runtime_ms.
         """
         self._tool_calls += 1
-        if not self._last_compile_ok:
+        if not self._binary_exists:
             return RunResult(correct=False, output="No compiled binary — run compile() first.")
 
         if size is not None:
@@ -463,7 +467,7 @@ class SIMDTools:
 
     # ─── Tool: submit ─────────────────────────────────────────────────────────
 
-    def submit(self, code: str) -> EvalResult:
+    def submit(self, code: str, explanation: str = "") -> EvalResult:
         """
         Final submission: compile, check correctness, score against baselines.
 
@@ -473,6 +477,7 @@ class SIMDTools:
 
         Args:
             code: The optimized C implementation to submit.
+            explanation: Agent's description of the approach and perf observations.
 
         Returns:
             EvalResult with correctness, speedup levels, final score, and per-size
@@ -560,6 +565,7 @@ class SIMDTools:
             level=level,
             runtime_ms=runtime_ms,
             tool_calls=self._tool_calls,
+            explanation=explanation,
             perf_by_size=perf_by_size if perf_by_size else None,
         )
 
@@ -848,8 +854,8 @@ class SIMDTools:
                     "name": "submit",
                     "description": (
                         "Submit your final implementation for scoring. "
-                        "Compiles, runs 1000 iterations, and computes speedup vs scalar and autovec baselines. "
-                        "Call this when you are satisfied with your implementation."
+                        "Compiles, runs at large DRAM-bound sizes, and computes speedup vs scalar and autovec baselines. "
+                        "Call this when you have a correct, profiled implementation you are satisfied with."
                     ),
                     "parameters": {
                         "type": "object",
@@ -858,8 +864,15 @@ class SIMDTools:
                                 "type": "string",
                                 "description": "Your final optimized C implementation.",
                             },
+                            "explanation": {
+                                "type": "string",
+                                "description": (
+                                    "Brief explanation of your approach: which SVE instructions you used, "
+                                    "why you chose them, and what perf() results you observed."
+                                ),
+                            },
                         },
-                        "required": ["code"],
+                        "required": ["code", "explanation"],
                     },
                 },
             },
@@ -876,7 +889,7 @@ class SIMDTools:
         elif name == "disassemble":
             return self.disassemble(args.get("fn")).to_tool_result()
         elif name == "submit":
-            result = self.submit(args["code"])
+            result = self.submit(args["code"], explanation=args.get("explanation", ""))
             return result.to_dict()
         else:
             return {"error": f"Unknown tool: {name}"}

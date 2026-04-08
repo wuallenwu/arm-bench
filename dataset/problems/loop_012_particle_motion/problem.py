@@ -35,6 +35,19 @@ struct loop_012_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
+// Helper: compute next particle position with modular wrapping.
+// step: time step, direction: base position, magnitude: modulus, value: current velocity
+static double next_pos(int64_t step, double direction, int64_t magnitude,
+                       double value) {
+  double pos = direction;
+  double vabs = value < 0 ? -value : value;
+  double vabsstep =
+      (vabs * step) - ((int64_t)(vabs * step) / magnitude) * magnitude;
+  double vstep = value < 0 ? -vabsstep : vabsstep;
+  pos -= vstep;
+  return pos < 0.0 ? pos + magnitude : pos >= magnitude ? pos - magnitude : pos;
+}
+
 static void inner_loop_012(struct loop_012_data *restrict data) {
   int64_t step = data->step;
   double *direction = data->direction;
@@ -52,6 +65,7 @@ static void inner_loop_012(struct loop_012_data *restrict data) {
     ny[p] = next_pos(step, direction[1], magnitude[1], vy[p]);
     nz[p] = next_pos(step, direction[2], magnitude[2], vz[p]);
   }
+}
 """
 
 # Prompt template (used by generate_samples.py and run_benchmark.py)

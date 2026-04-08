@@ -48,6 +48,12 @@ Key rules:
   - The `res` field in the data struct is the checksum — it must match the scalar output.
   - Always call perf() after confirming correctness — do not submit without profiling.
   - Compare task_clock_ms across attempts to pick the fastest correct version.
+  - Do NOT invent preprocessor macros or pragmas for feature detection (e.g. no
+    #pragma GCC target(...) or #ifdef __ARM_FEATURE_SVE). Assume the build system
+    provides all required compiler flags — just include <arm_sve.h> and use the
+    intrinsics directly.
+  - When submitting, include an explanation of which SVE instructions you used,
+    why you chose them, and what perf() results you observed.
 """
 
 # One-shot example shown in the user prompt
@@ -274,6 +280,9 @@ def run_agentic_eval(
 
             if verbose:
                 if fn_name == "submit":
+                    expl = result_dict.get("explanation", "")
+                    if expl:
+                        print(f"  ← explanation: {expl[:200]}")
                     print(f"  ← {result_dict}")
                 elif fn_name == "compile":
                     status = "OK" if result_dict.get("success") else "FAILED"
