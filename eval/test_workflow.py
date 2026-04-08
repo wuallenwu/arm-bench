@@ -80,7 +80,7 @@ def run_smoke_test(problem_id: str, isa: str, teardown: bool):
     # 4. Perf
     print("[4/5] perf(n=50)...")
     pr = tools.perf(n=50)
-    print(f"      cycles={pr.cycles}  instructions={pr.instructions}  ipc={pr.ipc}  l1d_miss%={pr.l1d_miss_pct}  task_clock_ms={pr.task_clock_ms}")
+    print(f"      cycles={pr.cycles}  instructions={pr.instructions}  ipc={pr.ipc}  cache_misses/iter={pr.cache_misses_per_iter}  task_clock_ms={pr.task_clock_ms}")
     print()
 
     # 5. Disassemble
@@ -101,7 +101,7 @@ def run_smoke_test(problem_id: str, isa: str, teardown: bool):
     print(f"  cycles     : {pr.cycles}")
     print(f"  instructions: {pr.instructions}")
     print(f"  IPC        : {pr.ipc}")
-    print(f"  L1D miss % : {pr.l1d_miss_pct}")
+    print(f"  LLC misses/iter: {pr.cache_misses_per_iter}")
     print(f"  task_clock : {pr.task_clock_ms} ms/iter")
     print(f"{'='*60}\n")
 

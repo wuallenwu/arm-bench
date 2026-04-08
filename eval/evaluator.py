@@ -29,15 +29,17 @@ implementation of a given loop kernel for {isa_desc}.
 You have access to these tools:
   - compile(code): Inject and compile your C implementation. Check for errors.
   - run(n): Run the compiled binary (n iterations). Verifies correctness via checksum.
-  - perf(n): Collect hardware PMU counters: cycles, IPC, task_clock_ms (on-CPU ms/iter).
+  - perf(n, size): Collect hardware PMU counters: cycles, IPC, cache_misses_per_iter, task_clock_ms.
   - disassemble(fn): See the generated AArch64 assembly for a specific function.
-  - submit(code): Submit your final implementation for scoring.
+  - submit(code, explanation): Submit your final implementation for scoring.
 
 Workflow — follow this order:
   1. compile() your first attempt.
   2. run() to verify correctness. Fix any checksum failures before continuing.
-  3. perf() after every correct implementation to measure IPC and task_clock_ms.
+  3. perf() after every correct implementation — use a large size (e.g. size=500000) to ensure
+     data spills out of cache and you are measuring real memory bandwidth, not cache hits.
      - IPC < 1.5 on a SIMD kernel usually means poor vectorization or memory bottleneck.
+     - cache_misses_per_iter > 1000 at large size means significant LLC misses — bandwidth-bound.
      - task_clock_ms is on-CPU time per iteration — use it to compare implementations.
   4. disassemble() if you want to confirm which SVE instructions were generated.
   5. Iterate: if IPC is low or task_clock_ms is high, try a different approach and perf() again.
@@ -296,9 +298,9 @@ def run_agentic_eval(
                     print(f"  ← run: correct={correct}, {ms}ms")
                 elif fn_name == "perf":
                     ipc = result_dict.get("ipc")
-                    miss = result_dict.get("l1d_miss_pct")
+                    miss = result_dict.get("cache_misses_per_iter")
                     task_ms = result_dict.get("task_clock_ms")
-                    print(f"  ← perf: IPC={ipc}, L1D_miss={miss}%, task_clock={task_ms}ms/iter")
+                    print(f"  ← perf: IPC={ipc}, LLC_misses/iter={miss}, task_clock={task_ms}ms/iter")
                 else:
                     print(f"  ← {fn_name}: {str(result_dict)[:100]}")
 

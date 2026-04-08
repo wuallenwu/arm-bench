@@ -49,7 +49,7 @@ class PerfResult:
     cycles: int | None = None
     instructions: int | None = None
     ipc: float | None = None
-    l1d_miss_pct: float | None = None
+    cache_misses_per_iter: float | None = None  # LLC misses divided by n iterations
     task_clock_ms: float | None = None  # on-CPU ms per iteration (excludes scheduler idle)
     raw_output: str = ""
 
@@ -58,7 +58,7 @@ class PerfResult:
             "cycles": self.cycles,
             "instructions": self.instructions,
             "ipc": self.ipc,
-            "l1d_miss_pct": self.l1d_miss_pct,
+            "cache_misses_per_iter": self.cache_misses_per_iter,
             "task_clock_ms": self.task_clock_ms,
             "raw_output": self.raw_output.strip(),
         }
@@ -324,7 +324,7 @@ class SIMDTools:
                   restore the default-size binary afterwards.
 
         Returns:
-            PerfResult with cycles, instructions, IPC, L1D miss %, and task_clock_ms
+            PerfResult with cycles, instructions, IPC, cache_misses_per_iter, and task_clock_ms
             (on-CPU milliseconds per iteration, excluding scheduler idle time).
         """
         self._tool_calls += 1
@@ -343,7 +343,7 @@ class SIMDTools:
             f"PERF=${{PERF:-perf}}; "
             f"{self.remote_binary} -k {loop_hex} -n 1 >/dev/null 2>&1; "  # warmup
             f"sudo $PERF stat "
-            f"-e cycles,instructions,r04,r03,task-clock "
+            f"-e cycles,instructions,cache-misses,task-clock "
             f"{self.remote_binary} -k {loop_hex} -n {n} "
             f"2>&1"
         )
@@ -365,7 +365,7 @@ class SIMDTools:
             f"PERF=${{PERF:-perf}}; "
             f"{bin_path} -k {loop_decimal} -n 1 >/dev/null 2>&1; "  # warmup
             f"sudo $PERF stat "
-            f"-e cycles,instructions,r04,r03,task-clock "
+            f"-e cycles,instructions,cache-misses,task-clock "
             f"{bin_path} -k {loop_decimal} -n {n} "
             f"2>&1"
         )
@@ -388,11 +388,10 @@ class SIMDTools:
         elif cycles and instructions:
             ipc = round(instructions / cycles, 2) if cycles > 0 else None
 
-        l1d_accesses = _parse_perf_counter(output, r"r04")
-        l1d_misses = _parse_perf_counter(output, r"r03")
-        l1d_miss_pct = None
-        if l1d_accesses and l1d_misses and l1d_accesses > 0:
-            l1d_miss_pct = round(100.0 * l1d_misses / l1d_accesses, 2)
+        raw_cache_misses = _parse_perf_counter(output, "cache-misses")
+        cache_misses_per_iter = None
+        if raw_cache_misses is not None and n > 0:
+            cache_misses_per_iter = round(raw_cache_misses / n, 1)
 
         # task-clock: on-CPU time per iteration (excludes time sleeping/preempted).
         # Older perf: "   1,234.56 msec task-clock"  (value in ms)
@@ -410,7 +409,7 @@ class SIMDTools:
             cycles=cycles,
             instructions=instructions,
             ipc=ipc,
-            l1d_miss_pct=l1d_miss_pct,
+            cache_misses_per_iter=cache_misses_per_iter,
             task_clock_ms=task_clock_ms,
             raw_output=output,
         )
@@ -803,10 +802,10 @@ class SIMDTools:
                     "name": "perf",
                     "description": (
                         "Run perf stat to collect hardware PMU counters: "
-                        "cycles, instructions, IPC, L1D cache miss rate, and task_clock_ms "
-                        "(on-CPU milliseconds per iteration — more precise than run() wall-clock timing). "
-                        "Pass size= to profile at a larger input size (recompiles automatically). "
-                        "Note: L2/L3 counters are not available on Nitro-based Graviton instances."
+                        "cycles, instructions, IPC, cache_misses_per_iter (LLC misses per iteration), "
+                        "and task_clock_ms (on-CPU ms per iteration — more precise than run() wall-clock). "
+                        "Use size= to profile at a large input (e.g. size=500000) so data spills out of "
+                        "cache and you measure real memory bandwidth pressure."
                     ),
                     "parameters": {
                         "type": "object",
