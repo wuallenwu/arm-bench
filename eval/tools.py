@@ -328,7 +328,7 @@ class SIMDTools:
             (on-CPU milliseconds per iteration, excluding scheduler idle time).
         """
         self._tool_calls += 1
-        if not self._last_compile_ok:
+        if not self._binary_exists:
             return PerfResult(raw_output="No compiled binary — run compile() first.")
 
         if size is not None:
@@ -341,6 +341,7 @@ class SIMDTools:
         perf_cmd = (
             f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
             f"PERF=${{PERF:-perf}}; "
+            f"{self.remote_binary} -k {loop_hex} -n 1 >/dev/null 2>&1; "  # warmup
             f"sudo $PERF stat "
             f"-e cycles,instructions,r04,r03,task-clock "
             f"{self.remote_binary} -k {loop_hex} -n {n} "
@@ -362,6 +363,7 @@ class SIMDTools:
         perf_cmd = (
             f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
             f"PERF=${{PERF:-perf}}; "
+            f"{bin_path} -k {loop_decimal} -n 1 >/dev/null 2>&1; "  # warmup
             f"sudo $PERF stat "
             f"-e cycles,instructions,r04,r03,task-clock "
             f"{bin_path} -k {loop_decimal} -n {n} "
