@@ -99,3 +99,4 @@ EDGE_SIZES = [0, 1, 3, 999, 1001]
 # Input sizes for performance measurement at submit time and via perf() tool.
 # Scored against the largest size. Empty list = skip.
 PERF_SIZES = [200000, 500000]
+PERF_SIZES_C8G = [1000000, 4000000]  # DRAM-bound on Graviton4 (64MB L3)

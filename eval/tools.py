@@ -139,7 +139,8 @@ class SIMDTools:
         )
 
         # Per-problem test sizes (loaded directly from problem.py, not the full index)
-        self._edge_sizes, self._perf_sizes = load_problem_sizes(problem_id)
+        # Pass isa so c8g targets use PERF_SIZES_C8G when defined.
+        self._edge_sizes, self._perf_sizes = load_problem_sizes(problem_id, isa=isa)
 
         # Restore the remote loop file to the clean local stub so any candidate
         # code left by a previous session doesn't pollute this session's compiles.

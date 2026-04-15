@@ -161,6 +161,15 @@ def main():
     if args.teardown:
         print("\n[teardown] Destroying instance...")
         teardown()
+    else:
+        from eval.provision import get_running_instance
+        handle = get_running_instance(args.isa)
+        if handle and handle.host:
+            print(
+                f"\n[WARNING] Instance at {handle.host} is still running and accruing cost. "
+                f"Run with --teardown to destroy it after evaluation, "
+                f"or: python -m eval.provision --teardown"
+            )
 
 
 def _print_summary(results: dict[str, EvalResult], isa: str, model: str):

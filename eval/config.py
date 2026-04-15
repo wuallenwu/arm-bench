@@ -158,10 +158,14 @@ def _extract_neon_code(loop_src: Path) -> str | None:
     return "".join(func_lines) if func_lines else None
 
 
-def load_problem_sizes(problem_id: str) -> tuple[list[int], list[int]]:
+def load_problem_sizes(problem_id: str, isa: str = "") -> tuple[list[int], list[int]]:
     """
     Return (edge_sizes, perf_sizes) for a single problem without loading the
     entire problems index. Reads only that problem's problem.py.
+
+    If isa is "sve2" (c8g tier) and the problem defines PERF_SIZES_C8G, that
+    list is used instead of PERF_SIZES so scoring is DRAM-bound on Graviton4's
+    larger 64MB L3 cache.
     """
     if not PROBLEMS_JSON.exists():
         return [], []
@@ -174,7 +178,13 @@ def load_problem_sizes(problem_id: str) -> tuple[list[int], list[int]]:
         return [], []
     text = problem_py.read_text()
     edge = _extract_int_list(text, "EDGE_SIZES") or []
-    perf = _extract_int_list(text, "PERF_SIZES") or []
+
+    # Use c8g-specific sizes when available and targeting c8g
+    perf = None
+    if isa in ("sve2", "sme2"):
+        perf = _extract_int_list(text, "PERF_SIZES_C8G")
+    if perf is None:
+        perf = _extract_int_list(text, "PERF_SIZES") or []
     return edge, perf
 
 
