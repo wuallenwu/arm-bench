@@ -137,27 +137,43 @@ def print_trace(trace_path: Path):
         turn = entry.get("turn")
         tool = entry.get("tool")
         reasoning = (entry.get("reasoning") or "").strip()
+        code_diff = entry.get("code_diff")
         args = entry.get("args", {})
         result = entry.get("result", {})
 
-        print(f"\n[Turn {turn}] → {tool}")
+        print(f"\n{'─'*72}")
+        print(f"[Turn {turn}] → {tool}")
 
         if reasoning:
-            preview = reasoning[:400] + ("..." if len(reasoning) > 400 else "")
-            for line in preview.splitlines():
-                print(f"  thinking: {line}")
+            print(f"  Reasoning:")
+            for line in reasoning.splitlines():
+                print(f"    {line}")
+
+        if code_diff:
+            print(f"  Code diff (vs previous version):")
+            for line in code_diff.splitlines():
+                prefix = "  "
+                if line.startswith("+"):
+                    prefix = "  \033[32m"   # green
+                elif line.startswith("-"):
+                    prefix = "  \033[31m"   # red
+                print(f"{prefix}  {line}\033[0m")
 
         # Args summary (skip large code, show just first line + length)
         for k, v in args.items():
             if k == "code":
                 first_line = str(v).splitlines()[0][:80] if v else ""
-                print(f"  args.code: {first_line!r}… [{len(str(v))} chars]")
-            else:
-                print(f"  args.{k}: {v!r}")
+                print(f"  code: {first_line!r}… [{len(str(v))} chars]")
+            elif k != "explanation":
+                print(f"  arg.{k}: {v!r}")
 
         # Result summary
+        result_parts = []
         for k, v in result.items():
-            print(f"  result.{k}: {v}")
+            if v is not None:
+                result_parts.append(f"{k}={v}")
+        if result_parts:
+            print(f"  result: {', '.join(result_parts)}")
 
 
 def main():

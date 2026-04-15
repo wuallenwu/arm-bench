@@ -57,6 +57,15 @@ Key rules:
     intrinsics directly.
   - When submitting, include an explanation of which SVE instructions you used,
     why you chose them, and what perf() results you observed.
+
+Reasoning requirement — BEFORE every tool call, write a short paragraph covering:
+  1. Observation: what the last result told you (perf numbers, correctness, asm pattern).
+  2. Hypothesis: what specific bottleneck or opportunity you are targeting next.
+  3. Change: for compile(), describe the exact code change you are making and why it should help.
+     e.g. "Switching from 4 to 8 accumulators because FMA latency is 4 cycles and IPC=1.26
+     suggests the pipeline is stalled waiting for accumulator writeback."
+  Keep it to 3-5 sentences — be precise, not verbose. This reasoning is recorded as part of
+  the benchmark audit trail so clarity matters.
 """
 
 # One-shot example shown in the user prompt
@@ -413,10 +422,28 @@ def run_agentic_eval(
                 for k, v in fn_args.items()
             }
 
+            # For compile calls, compute a line-level diff against the previous version
+            code_diff = None
+            if fn_name == "compile":
+                new_code = fn_args.get("code", "")
+                prev_code = (code_versions[-1]["code"] if code_versions else None)
+                if prev_code and prev_code != new_code:
+                    import difflib
+                    diff_lines = list(difflib.unified_diff(
+                        prev_code.splitlines(),
+                        new_code.splitlines(),
+                        lineterm="",
+                        n=2,  # 2 lines of context
+                    ))
+                    code_diff = "\n".join(diff_lines[:80])  # cap at 80 diff lines
+                    if len(diff_lines) > 80:
+                        code_diff += f"\n... ({len(diff_lines) - 80} more diff lines)"
+
             trace.append({
                 "turn": turn + 1,
                 "tool": fn_name,
                 "reasoning": reasoning_text,
+                "code_diff": code_diff,
                 "args": args_summary,
                 "result": result_summary,
             })
