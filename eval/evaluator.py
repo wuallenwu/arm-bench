@@ -278,6 +278,20 @@ def run_agentic_eval(
         if verbose:
             print(f"\n[Turn {turn+1}/{max_turns}]")
 
+        # Warn agent when turns are running low so it submits rather than iterating
+        turns_left = max_turns - turn
+        if turns_left == 3 and any(m["role"] == "tool" and
+                                    json.loads(m.get("content", "{}")).get("correct")
+                                    for m in messages):
+            messages.append({
+                "role": "user",
+                "content": (
+                    f"[{turns_left} turns remaining] You have a correct implementation compiled. "
+                    "Call submit() now with your best code and an explanation — "
+                    "do not spend remaining turns on further optimisation."
+                ),
+            })
+
         compressed = _compress_history(messages)
         for _retry in range(6):
             try:

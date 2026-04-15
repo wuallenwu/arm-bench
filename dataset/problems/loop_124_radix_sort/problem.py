@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_124",
     "num": "124",
     "name": "Radix sort",
-    "description": "Use of simd instructions in radix sort",
+    "description": "Sort integers by digit using a single radix counting pass",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_124_radix_sort",

@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_038",
     "num": "038",
     "name": "Fp16 convolution",
-    "description": "Use of fp16 multiply-add instructions",
+    "description": "1D convolution of an FP16 signal with an FP16 filter kernel",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_038_fp16_convolution",

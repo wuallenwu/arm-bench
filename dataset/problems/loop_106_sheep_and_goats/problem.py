@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_106",
     "num": "106",
     "name": "Sheep and goats",
-    "description": "Use of BGRP instruction",
+    "description": "Partition a vector by bit flag, concentrating set-bit elements to one side",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_106_sheep_and_goats",

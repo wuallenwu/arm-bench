@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_005",
     "num": "005",
     "name": "strlen short strings",
-    "description": "Use of FF and NF loads instructions",
+    "description": "Compute the length of many short null-terminated strings",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_005_strlen_short_strings",

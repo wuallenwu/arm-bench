@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_040",
     "num": "040",
     "name": "Clamp operation",
-    "description": "Use of simd clamp (or min, max and shift) instructions",
+    "description": "Clamp each element of an integer sequence to data-dependent [min, max] bounds",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_040_clamp_operation",

@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_216",
     "num": "216",
     "name": "FP32 col-major matrix-vector multiply",
-    "description": "Use of fp32 MLA instruction",
+    "description": "Multiply an FP32 matrix by an FP32 vector (column-major GEMV)",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_216_fp32_col_major_matrix_vector_multiply",

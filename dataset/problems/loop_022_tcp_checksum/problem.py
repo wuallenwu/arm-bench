@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_022",
     "num": "022",
     "name": "TCP checksum",
-    "description": "Use of simd instructions for misaligned accesses",
+    "description": "Compute one's complement checksum across a buffer of variable-length TCP packets",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_022_tcp_checksum",

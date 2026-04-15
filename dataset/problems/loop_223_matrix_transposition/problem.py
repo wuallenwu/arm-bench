@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_223",
     "num": "223",
     "name": "Matrix transposition",
-    "description": "Use of simd instructions (LD & ST ZA, LD & ZIP) in transposition",
+    "description": "Transpose a matrix in-place using interleaved load and store",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_223_matrix_transposition",

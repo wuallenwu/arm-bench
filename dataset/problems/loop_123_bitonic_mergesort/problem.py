@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_123",
     "num": "123",
     "name": "Bitonic mergesort",
-    "description": "Use of CMPGT with SEL instructions",
+    "description": "Merge two sorted halves using a bitonic compare-and-swap network",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_123_bitonic_mergesort",

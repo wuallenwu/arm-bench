@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_207",
     "num": "207",
     "name": "INT1-INT32 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of 1-bit MOPA instructions",
+    "description": "Multiply 1-bit binary matrices accumulating into INT32",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_207_int1_int32_matrix_matrix_multiply_using_",

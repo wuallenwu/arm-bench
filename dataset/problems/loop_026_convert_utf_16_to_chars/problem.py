@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_026",
     "num": "026",
     "name": "Convert UTF-16 to chars",
-    "description": "Use of gathers load instruction",
+    "description": "Convert a UTF-16 string to narrow ASCII chars, skipping high surrogate pairs",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_026_convert_utf_16_to_chars",

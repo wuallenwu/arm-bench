@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_009",
     "num": "009",
     "name": "Pointer chasing",
-    "description": "Use of CTERM and BRK instructions",
+    "description": "Traverse a linked list and XOR-accumulate the payload from each node",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_009_pointer_chasing",

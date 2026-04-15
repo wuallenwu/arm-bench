@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_201",
     "num": "201",
     "name": "FP64 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of fp64 MOPA (or MLA) instructions",
+    "description": "Multiply two FP64 matrices using tiled outer-product accumulation",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_201_fp64_matrix_matrix_multiply_using_mopa_d",

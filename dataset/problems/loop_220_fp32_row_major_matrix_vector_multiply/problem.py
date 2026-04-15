@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_220",
     "num": "220",
     "name": "FP32 row-major matrix-vector multiply",
-    "description": "Use of fp32 MLA and ADDV instructions",
+    "description": "Multiply an FP32 matrix by an FP32 vector (row-major GEMV)",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_220_fp32_row_major_matrix_vector_multiply",

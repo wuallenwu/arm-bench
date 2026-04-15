@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_231",
     "num": "231",
     "name": "BF16-FP32 col-major interleaved matrix-vector multiply",
-    "description": "Use of bf16 to fp32 DOT instruction",
+    "description": "Multiply a BF16 matrix by a BF16 vector accumulating into FP32 (column-major interleaved GEMV)",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_231_bf16_fp32_col_major_interleaved_matrix_v",

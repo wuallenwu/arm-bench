@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_212",
     "num": "212",
     "name": "4-bit-FP32 col-major interleaved matrix-vector multiply",
-    "description": "Use of 4-bit dequantization (LUT) and DOT instructions",
+    "description": "Multiply 4-bit quantized matrices into FP32 using lookup dequantization and dot products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_212_4_bit_fp32_col_major_interleaved_matrix_",

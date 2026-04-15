@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_032",
     "num": "032",
     "name": "FP64 banded linear equations",
-    "description": "Use of strided gather and INC instructions",
+    "description": "Solve a step of a banded linear system with non-unit-strided coefficient access",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_032_fp64_banded_linear_equations",

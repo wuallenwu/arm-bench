@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_035",
     "num": "035",
     "name": "Array addition",
-    "description": "Use of WHILE for loop control",
+    "description": "Element-wise addition of two arrays with arbitrary length (non-multiple-of-vector-width)",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_035_array_addition",

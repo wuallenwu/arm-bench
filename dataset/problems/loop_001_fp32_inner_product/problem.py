@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_001",
     "num": "001",
     "name": "FP32 inner product",
-    "description": "Use of fp32 MLA instruction",
+    "description": "Compute the FP32 dot product of two float arrays",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_001_fp32_inner_product",

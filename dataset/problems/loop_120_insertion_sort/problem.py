@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_120",
     "num": "120",
     "name": "Insertion sort",
-    "description": "Use of CMPLT instruction",
+    "description": "Sort a small integer array using insertion sort",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_120_insertion_sort",

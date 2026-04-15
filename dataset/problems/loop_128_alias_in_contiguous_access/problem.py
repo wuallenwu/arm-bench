@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_128",
     "num": "128",
     "name": "alias in contiguous access",
-    "description": "Use of simd loop with possible alias in contiguous mem access",
+    "description": "Shift array elements in place where source and destination ranges may overlap",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_128_alias_in_contiguous_access",

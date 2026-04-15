@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_012",
     "num": "012",
     "name": "Particle motion",
-    "description": "Use of FP compare instructions",
+    "description": "Advance 3D particle positions by a time step with modular boundary wrapping",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_012_particle_motion",

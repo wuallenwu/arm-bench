@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_105",
     "num": "105",
     "name": "Cascade summation",
-    "description": "Use of pairwise FP add instruction",
+    "description": "Sum adjacent FP value pairs in a cascading pairwise reduction",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_105_cascade_summation",

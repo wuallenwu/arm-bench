@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_137",
     "num": "137",
     "name": "BF16-FP32 matrix-matrix multiply using MMLA",
-    "description": "Use of bf16 to fp32 MMLA instructions",
+    "description": "Multiply BF16 matrices accumulating into FP32 using tiled dot products",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_137_bf16_fp32_matrix_matrix_multiply_using_m",

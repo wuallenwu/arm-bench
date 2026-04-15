@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_031",
     "num": "031",
     "name": "small-lengths inline memcpy test",
-    "description": "Use of simd-based memcpy for small lengths and at varied alignments",
+    "description": "Copy small byte buffers of varied lengths and alignments",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_031_small_lengths_inline_memcpy_test",

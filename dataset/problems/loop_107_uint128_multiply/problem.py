@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_107",
     "num": "107",
     "name": "UINT128 multiply",
-    "description": "Use of ADCL[B/T] instructions",
+    "description": "Multiply 64-bit integer pairs producing full 128-bit results with carry",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_107_uint128_multiply",

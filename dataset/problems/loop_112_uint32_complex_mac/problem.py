@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_112",
     "num": "112",
     "name": "UINT32 complex MAC",
-    "description": "Use of CMLA instruction",
+    "description": "Complex multiply-accumulate over arrays of uint32 complex numbers",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_112_uint32_complex_mac",

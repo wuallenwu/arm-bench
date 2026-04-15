@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_010",
     "num": "010",
     "name": "Conditional reduction (fp)",
-    "description": "Use of CLAST (SIMD&FP scalar) instructions",
+    "description": "Find the last active element of an FP array under a computed predicate",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_010_conditional_reduction_fp",

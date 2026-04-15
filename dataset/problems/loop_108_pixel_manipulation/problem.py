@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_108",
     "num": "108",
     "name": "Pixel manipulation",
-    "description": "Use of LD4 with shift-accumulate instructions",
+    "description": "Deinterleave RGBA pixel data and accumulate channel values with bit shifts",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_108_pixel_manipulation",

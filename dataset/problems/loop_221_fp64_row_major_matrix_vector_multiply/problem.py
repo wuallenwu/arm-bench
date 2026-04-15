@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_221",
     "num": "221",
     "name": "FP64 row-major matrix-vector multiply",
-    "description": "Use of fp64 MLA and ADDV instructions",
+    "description": "Multiply an FP64 matrix by an FP64 vector (row-major GEMV)",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_221_fp64_row_major_matrix_vector_multiply",

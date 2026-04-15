@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_008",
     "num": "008",
     "name": "Precise fp64 add reduction",
-    "description": "Use of FADDA instructions",
+    "description": "Sum a double array with exact scalar FP ordering — result must be bit-identical to sequential scalar addition",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_008_precise_fp64_add_reduction",

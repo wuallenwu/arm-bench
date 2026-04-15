@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_113",
     "num": "113",
     "name": "UINT32 Pairs addition",
-    "description": "Use of u32 ADDP",
+    "description": "Sum adjacent uint32 pairs across an array (horizontal pairwise add)",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_113_uint32_pairs_addition",

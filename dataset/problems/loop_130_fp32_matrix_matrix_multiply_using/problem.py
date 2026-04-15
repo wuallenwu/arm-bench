@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_130",
     "num": "130",
     "name": "FP32 matrix-matrix multiply using",
-    "description": "Use of fp32 MMLA instructions",
+    "description": "Multiply two FP32 matrices using tiled register accumulation",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_130_fp32_matrix_matrix_multiply_using",

@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_205",
     "num": "205",
     "name": "INT8-INT32 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of i8 to i32 MOPA (or DOT) instructions",
+    "description": "Multiply INT8 matrices accumulating into INT32 using tiled outer products or dot products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_205_int8_int32_matrix_matrix_multiply_using_",

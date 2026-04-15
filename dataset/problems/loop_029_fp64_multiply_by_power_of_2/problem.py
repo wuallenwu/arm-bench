@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_029",
     "num": "029",
     "name": "FP64 multiply by power of 2",
-    "description": "Use of FSCALE instruction",
+    "description": "Scale each FP64 element by an integer power of two",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_029_fp64_multiply_by_power_of_2",

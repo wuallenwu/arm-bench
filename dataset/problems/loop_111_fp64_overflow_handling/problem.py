@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_111",
     "num": "111",
     "name": "FP64 overflow handling",
-    "description": "Use of FLOGB and FSCALE instructions",
+    "description": "Normalise FP64 values that may overflow by detecting and rescaling their exponents",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_111_fp64_overflow_handling",

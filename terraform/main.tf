@@ -140,6 +140,65 @@ resource "null_resource" "deploy" {
 }
 
 # ---------------------------------------------------------------------------
+# c8g instance (Graviton4, SVE2 128-bit)
+# ---------------------------------------------------------------------------
+
+resource "aws_instance" "c8g" {
+  instance_market_options {
+    market_type = "spot"
+  }
+
+  ami                    = "ami-012798e88aebdba5c" # Ubuntu 22.04 LTS arm64 us-west-2
+  instance_type          = "c8g.large"
+  key_name               = aws_key_pair.kernel_testing.key_name
+  vpc_security_group_ids = [aws_security_group.kernel_testing.id]
+  user_data              = base64encode(file("${path.module}/setup.sh"))
+
+  root_block_device {
+    volume_size = 50
+    volume_type = "gp3"
+  }
+
+  tags = {
+    Name = "kernel-testing-c8g"
+  }
+}
+
+resource "null_resource" "deploy_c8g" {
+  triggers = {
+    instance_id = aws_instance.c8g.id
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file("~/.ssh/id_rsa")
+    host        = aws_instance.c8g.public_ip
+    timeout     = "15m"
+  }
+
+  provisioner "remote-exec" {
+    inline = ["cloud-init status --wait"]
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      rsync -avz \
+        --exclude=build \
+        --exclude=.git \
+        --exclude=terraform \
+        -e 'ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' \
+        ${path.module}/../ \
+        ubuntu@${aws_instance.c8g.public_ip}:~/simd-loops/
+    EOT
+  }
+
+  provisioner "remote-exec" {
+    inline = ["echo 'c8g ready'"]
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Outputs
 # ---------------------------------------------------------------------------
 
@@ -161,4 +220,12 @@ output "instance_id" {
 
 output "ssh_key_path" {
   value = "~/.ssh/id_rsa"
+}
+
+output "c8g_public_ip" {
+  value = aws_instance.c8g.public_ip
+}
+
+output "c8g_instance_id" {
+  value = aws_instance.c8g.id
 }

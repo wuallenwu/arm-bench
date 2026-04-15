@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_033",
     "num": "033",
     "name": "FP64 Inner product",
-    "description": "Use of a tight loop with INC and WHILE instructions",
+    "description": "Compute FP64 inner product of two arrays",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_033_fp64_inner_product",

@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_204",
     "num": "204",
     "name": "FP16 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of fp16 to fp16 MOPA (or MLA) instructions",
+    "description": "Multiply two FP16 matrices accumulating into FP16 using tiled outer products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_204_fp16_matrix_matrix_multiply_using_mopa_d",

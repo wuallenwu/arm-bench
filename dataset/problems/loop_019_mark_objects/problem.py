@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_019",
     "num": "019",
     "name": "Mark objects",
-    "description": "Use of scatters store instruction",
+    "description": "Write a marker value to a set of scattered (non-contiguous) memory locations",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_019_mark_objects",

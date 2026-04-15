@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_202",
     "num": "202",
     "name": "FP32 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of fp32 MOPA (or MLA) instructions",
+    "description": "Multiply two FP32 matrices using tiled outer-product accumulation",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_202_fp32_matrix_matrix_multiply_using_mopa_d",

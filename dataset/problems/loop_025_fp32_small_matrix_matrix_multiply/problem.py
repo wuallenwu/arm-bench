@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_025",
     "num": "025",
     "name": "FP32 small matrix-matrix multiply",
-    "description": "Use of fp32 indexed MLA instruction",
+    "description": "Multiply two small fixed-size FP32 matrices",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_025_fp32_small_matrix_matrix_multiply",

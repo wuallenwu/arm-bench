@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_028",
     "num": "028",
     "name": "FP64 fast division",
-    "description": "Use of FRECPE and FRECPS instructions",
+    "description": "Compute element-wise fast approximate reciprocal division of FP64 arrays",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_028_fp64_fast_division",

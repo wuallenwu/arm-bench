@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_208",
     "num": "208",
     "name": "BF16-BF16 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of bf16 to bf16 MOPA (or MLA) instructions",
+    "description": "Multiply BF16 matrices accumulating into BF16 using tiled outer products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_208_bf16_bf16_matrix_matrix_multiply_using_m",

@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_217",
     "num": "217",
     "name": "INT8-INT32 row-major matrix-vector multiply",
-    "description": "Use of i8 to i32 DOT and ADDV instructions",
+    "description": "Multiply an INT8 matrix by an INT8 vector accumulating into INT32 (row-major GEMV)",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_217_int8_int32_row_major_matrix_vector_multi",

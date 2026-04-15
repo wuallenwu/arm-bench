@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_034",
     "num": "034",
     "name": "Short string compares",
-    "description": "Use of FFR for strcmp",
+    "description": "Compare many short null-terminated strings for equality",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_034_short_string_compares",

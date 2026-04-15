@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_023",
     "num": "023",
     "name": "Conjugate Gradient",
-    "description": "Use of gathers load instruction",
+    "description": "Sparse matrix-vector multiply where column indices are stored as an indirect index array",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_023_conjugate_gradient",

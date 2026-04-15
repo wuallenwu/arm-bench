@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_114",
     "num": "114",
     "name": "Auto-correlation",
-    "description": "Use of shifts, widening mult and load-replicate instructions",
+    "description": "Compute auto-correlation of an integer array with widening accumulation",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_114_auto_correlation",

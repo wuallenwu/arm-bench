@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_104",
     "num": "104",
     "name": "Byte historgram",
-    "description": "Use of HISTSEG instruction",
+    "description": "Compute byte-value frequency histogram using segmented counting",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_104_byte_historgram",

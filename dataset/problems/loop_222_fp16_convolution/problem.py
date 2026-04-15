@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_222",
     "num": "222",
     "name": "FP16 convolution",
-    "description": "Use of mutli-vector LD and f16 MLA instructions",
+    "description": "1D convolution of an FP16 signal with an FP16 filter using multi-vector loads",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_222_fp16_convolution",

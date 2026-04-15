@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_127",
     "num": "127",
     "name": "loop early exit",
-    "description": "Use of simd loop with early exit",
+    "description": "Search an array for the first element satisfying a condition, exit immediately on match",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_127_loop_early_exit",

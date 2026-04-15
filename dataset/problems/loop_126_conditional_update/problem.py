@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_126",
     "num": "126",
     "name": "conditional update",
-    "description": "Use of simd loop with conditional update",
+    "description": "Conditionally update array elements where a per-element predicate holds",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_126_conditional_update",

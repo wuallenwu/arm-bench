@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_109",
     "num": "109",
     "name": "UINT32 complex addition",
-    "description": "Use of u32 CADD instruction",
+    "description": "Element-wise addition of complex numbers stored as interleaved uint32 (re, im) pairs",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_109_uint32_complex_addition",

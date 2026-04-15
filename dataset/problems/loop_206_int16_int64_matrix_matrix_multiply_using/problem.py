@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_206",
     "num": "206",
     "name": "INT16-INT64 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of i16 to i64 MOPA (or DOT) instructions",
+    "description": "Multiply INT16 matrices accumulating into INT64 using tiled outer products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_206_int16_int64_matrix_matrix_multiply_using",

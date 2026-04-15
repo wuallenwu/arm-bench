@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_037",
     "num": "037",
     "name": "FP32 complex vector product",
-    "description": "Use of fp32 FCMLA instruction",
+    "description": "Element-wise complex multiplication of two FP32 complex-number arrays (interleaved re/im)",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_037_fp32_complex_vector_product",

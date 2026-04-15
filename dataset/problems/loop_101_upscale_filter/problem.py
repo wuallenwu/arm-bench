@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_101",
     "num": "101",
     "name": "Upscale filter",
-    "description": "Use of top/bottom instructions",
+    "description": "Upscale a pixel buffer by splitting each element into its high and low halves",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_101_upscale_filter",

@@ -109,24 +109,35 @@ def provision(instance_type: str = "c7g.large", initial_build: str = "") -> Inst
         instance_type: EC2 instance type string (e.g. "c7g.large", "c8g.large")
         initial_build: make target for initial build, e.g. "c-scalar". Empty = skip.
     """
+    is_c8g = "c8g" in instance_type
     print(f"[provision] Provisioning {instance_type} via Terraform...")
 
-    skip_build = initial_build == ""
-    vars = [
-        f"-var=instance_type={instance_type}",
-        f"-var=skip_initial_build={'true' if skip_build else 'false'}",
-    ]
-    if not skip_build:
-        vars.append(f"-var=build_target={initial_build}")
+    if is_c8g:
+        # c8g has its own fixed resource block — target it directly
+        result = _tf("apply", "-auto-approve",
+                     "-target=aws_instance.c8g",
+                     "-target=null_resource.deploy_c8g")
+    else:
+        skip_build = initial_build == ""
+        vars = [
+            f"-var=instance_type={instance_type}",
+            f"-var=skip_initial_build={'true' if skip_build else 'false'}",
+        ]
+        if not skip_build:
+            vars.append(f"-var=build_target={initial_build}")
+        result = _tf("apply", "-auto-approve", *vars)
 
-    result = _tf("apply", "-auto-approve", *vars)
     if result.returncode != 0:
         raise RuntimeError("terraform apply failed")
 
     outputs = _tf_output()
-    host = outputs["instance_public_ip"]["value"]
+    if is_c8g:
+        host = outputs["c8g_public_ip"]["value"]
+        instance_id = outputs.get("c8g_instance_id", {}).get("value")
+    else:
+        host = outputs["instance_public_ip"]["value"]
+        instance_id = outputs.get("instance_id", {}).get("value")
     key_file = outputs.get("ssh_key_path", {}).get("value", "~/.ssh/id_rsa")
-    instance_id = outputs.get("instance_id", {}).get("value")
 
     handle = InstanceHandle(
         host=host,
@@ -175,7 +186,7 @@ def get_running_instance(isa: str) -> InstanceHandle | None:
     if not EVAL_CONFIG_PATH.exists():
         return None
     config = json.loads(EVAL_CONFIG_PATH.read_text())
-    tier = "c8g" if isa == "sme2" else "c7g"
+    tier = "c8g" if isa in ("sve2", "sme2") else "c7g"
     inst = config.get("instances", {}).get(tier, {})
     host = inst.get("host", "")
     if not host:

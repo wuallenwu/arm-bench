@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_136",
     "num": "136",
     "name": "INT4-INT32 matrix-matrix multiply using MMLA",
-    "description": "Use of 4-bit dequantization (LUT) with i8 to i32 MMLA instructions",
+    "description": "Multiply 4-bit quantized matrices into INT32 using lookup-table dequantization",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_136_int4_int32_matrix_matrix_multiply_using_",

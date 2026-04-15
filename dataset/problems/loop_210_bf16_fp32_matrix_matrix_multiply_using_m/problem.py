@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_210",
     "num": "210",
     "name": "BF16-FP32 matrix-matrix multiply using MOPA / DOT",
-    "description": "Use of bf16 to fp32 MOPA (or DOT) instructions",
+    "description": "Multiply BF16 matrices accumulating into FP32 using tiled outer products or dot products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_210_bf16_fp32_matrix_matrix_multiply_using_m",

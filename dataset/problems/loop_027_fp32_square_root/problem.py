@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_027",
     "num": "027",
     "name": "FP32 square root",
-    "description": "Use of FSQRT instruction",
+    "description": "Compute element-wise square root of an FP32 array",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_027_fp32_square_root",

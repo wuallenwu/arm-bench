@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_024",
     "num": "024",
     "name": "Sum of abs diffs",
-    "description": "Use of DOT instruction",
+    "description": "Sum of absolute differences between two byte arrays, accumulated into a uint32",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_024_sum_of_abs_diffs",

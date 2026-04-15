@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_215",
     "num": "215",
     "name": "UINT8-UINT32 col-major interleaved matrix-vector multiply",
-    "description": "Use of u8 to u32 DOT instruction",
+    "description": "Multiply uint8 matrices accumulating into uint32 using column-major tiled dot products",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_215_uint8_uint32_col_major_interleaved_matri",

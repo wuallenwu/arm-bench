@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_004",
     "num": "004",
     "name": "UINT64 inner product",
-    "description": "Use of u64 MLA instruction",
+    "description": "Compute the integer dot product of two uint64 arrays",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_004_uint64_inner_product",

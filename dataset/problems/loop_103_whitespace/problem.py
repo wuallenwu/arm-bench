@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_103",
     "num": "103",
     "name": "whitespace",
-    "description": "Use of MATCH and NMATCH instructions",
+    "description": "Find all whitespace character positions in a byte string",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_103_whitespace",

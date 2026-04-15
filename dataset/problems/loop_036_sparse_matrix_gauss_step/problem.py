@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_036",
     "num": "036",
     "name": "Sparse matrix Gauss Step",
-    "description": "Use of gather-based matrix processing",
+    "description": "Apply one Gaussian elimination step to a sparse row using indirect column indices",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_036_sparse_matrix_gauss_step",

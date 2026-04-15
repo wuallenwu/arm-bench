@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_122",
     "num": "122",
     "name": "Odd-Even transposition sort",
-    "description": "Use of CMPLT with SEL instructions",
+    "description": "Sort element pairs using odd-even transposition compare-and-swap",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_122_odd_even_transposition_sort",

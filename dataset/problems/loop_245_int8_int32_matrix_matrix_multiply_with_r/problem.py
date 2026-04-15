@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_245",
     "num": "245",
     "name": "INT8-INT32 matrix-matrix multiply with rearrangement",
-    "description": "Use of MOPA, DOT & MMLA instructions with matrix rearrangements",
+    "description": "Multiply INT8 matrices into INT32 using a mix of tiled outer products, dot products, and matrix rearrangement",
     "isa_target": "sme2",
     "instance_type": "c8g.large",
     "dir_name": "loop_245_int8_int32_matrix_matrix_multiply_with_r",

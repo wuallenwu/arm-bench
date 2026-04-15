@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_102",
     "num": "102",
     "name": "General histogram",
-    "description": "Use of HISTCNT instruction",
+    "description": "Count the frequency of each byte value in a large buffer (histogram)",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_102_general_histogram",

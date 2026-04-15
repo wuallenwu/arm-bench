@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_121",
     "num": "121",
     "name": "Quicksort",
-    "description": "Use of CMPLT with COMPACT and CNTP instructions",
+    "description": "Partition an integer array around a pivot (one pass of quicksort)",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_121_quicksort",

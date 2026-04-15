@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_135",
     "num": "135",
     "name": "INT8-INT32 matrix-matrix multiply using MMLA",
-    "description": "Use of i8 to i32 MMLA instructions",
+    "description": "Multiply INT8 matrices accumulating into INT32 using tiled 4-element dot products",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_135_int8_int32_matrix_matrix_multiply_using_",

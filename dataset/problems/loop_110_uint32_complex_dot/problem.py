@@ -10,7 +10,7 @@ METADATA = {
     "id": "loop_110",
     "num": "110",
     "name": "UINT32 complex dot",
-    "description": "Use of u32 CDOT instruction",
+    "description": "Compute complex dot product of two arrays of uint32 complex numbers",
     "isa_target": "sve2",
     "instance_type": "c7g.large",
     "dir_name": "loop_110_uint32_complex_dot",
