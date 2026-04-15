@@ -91,9 +91,15 @@ def main():
             return
         problem_ids = [args.problem]
     else:
+        # SVE2 is a strict superset of SVE — run sve/sve2-tagged problems on c8g.
+        # SVE-only problems are valid SVE2 targets; the agent can use SVE2 intrinsics.
+        if args.isa == "sve2":
+            valid_targets = {"sve", "sve2"}
+        else:
+            valid_targets = {args.isa}
         problem_ids = [
             pid for pid, p in problems.items()
-            if p.get("isa_target") == args.isa
+            if p.get("isa_target") in valid_targets
         ]
         print(f"Running {len(problem_ids)} problems (ISA: {args.isa})")
 
