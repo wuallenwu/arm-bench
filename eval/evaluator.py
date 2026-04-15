@@ -11,6 +11,7 @@ import copy
 import json
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import litellm
@@ -272,7 +273,9 @@ def run_agentic_eval(
         print(f"Problem: {problem_id} | ISA: {isa} | Model: {model}")
         print(f"{'='*60}")
 
+    run_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     final_result: EvalResult | None = None
+    trace: list[dict] = []  # per-turn record of reasoning + tool usage
 
     for turn in range(max_turns):
         if verbose:
@@ -319,6 +322,9 @@ def run_agentic_eval(
                 print(f"  Agent: {msg.content}")
             break
 
+        # Capture the agent's reasoning text (content before the tool calls)
+        reasoning_text = msg.content or ""
+
         # Execute each tool call
         for tc in msg.tool_calls:
             fn_name = tc.function.name
@@ -360,6 +366,26 @@ def run_agentic_eval(
                 "tool_call_id": tc.id,
                 "content": json.dumps(result_dict),
             })
+
+            # Build a compact result summary (omit large fields like raw_output/asm)
+            result_summary = {k: v for k, v in result_dict.items()
+                              if k not in ("raw_output", "asm", "warnings", "output", "trace")}
+
+            # Build a compact args summary (truncate large code strings)
+            args_summary = {
+                k: (v[:300] + f"... [{len(v)} chars]" if isinstance(v, str) and len(v) > 300 else v)
+                for k, v in fn_args.items()
+            }
+
+            trace.append({
+                "turn": turn + 1,
+                "tool": fn_name,
+                "reasoning": reasoning_text,
+                "args": args_summary,
+                "result": result_summary,
+            })
+            # Only emit reasoning once per turn (may have multiple tool calls)
+            reasoning_text = ""
 
             # Capture submit result — only lock in if it actually compiled and ran
             if fn_name == "submit":
@@ -412,6 +438,9 @@ def run_agentic_eval(
             runtime_ms=rr.runtime_ms,
             tool_calls=tools._tool_calls,
         )
+
+    final_result.timestamp = run_timestamp
+    final_result.trace = trace
 
     if verbose:
         print(f"\n[Final Result]")

@@ -59,6 +59,8 @@ def main():
                         help="Max agent turns per problem (default: 20)")
     parser.add_argument("--quiet", action="store_true", help="Suppress per-turn output")
     parser.add_argument("--no-save", action="store_true", help="Don't save results to results/")
+    parser.add_argument("--save-trace", action="store_true",
+                        help="Save full conversation trace to traces/ alongside results")
 
     args = parser.parse_args()
 
@@ -117,10 +119,32 @@ def main():
         results[pid] = result
 
         if not args.no_save:
-            out = RESULTS_DIR / f"{pid}_{args.isa}_{args.model.replace('/', '_')}.json"
+            stem = f"{pid}_{args.isa}_{args.model.replace('/', '_')}"
             data = result.to_dict()
             data.update({"problem_id": pid, "isa": args.isa, "model": args.model})
+
+            # Overwrite the latest-run JSON (backward-compat)
+            out = RESULTS_DIR / f"{stem}.json"
             out.write_text(json.dumps(data, indent=2))
+
+            # Append to JSONL for time-series tracking (one record per line)
+            jsonl_out = RESULTS_DIR / f"{stem}.jsonl"
+            with jsonl_out.open("a") as f:
+                f.write(json.dumps(data) + "\n")
+
+            # Optionally save full conversation trace to traces/
+            if args.save_trace and result.trace:
+                traces_dir = REPO_ROOT / "traces"
+                traces_dir.mkdir(exist_ok=True)
+                ts = result.timestamp.replace(":", "-")
+                trace_out = traces_dir / f"{stem}_{ts}.json"
+                trace_out.write_text(json.dumps({
+                    "problem_id": pid,
+                    "isa": args.isa,
+                    "model": args.model,
+                    "timestamp": result.timestamp,
+                    "trace": result.trace,
+                }, indent=2))
 
     # ── Print summary ─────────────────────────────────────────────────────
     _print_summary(results, args.isa, args.model)

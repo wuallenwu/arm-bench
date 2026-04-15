@@ -8,7 +8,7 @@ The agent writes C code only — it never sees SSH commands or bash.
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from eval.config import ISA_MAKE_TARGET, REPO_ROOT, load_baselines, load_problem_sizes, ISA_TIER
@@ -86,6 +86,10 @@ class EvalResult:
     explanation: str = ""   # agent's reasoning about its approach (from submit)
     # Timing at each PERF_SIZE: {size: runtime_ms}. Populated at submit time.
     perf_by_size: dict | None = None
+    # ISO-8601 timestamp of when this result was produced.
+    timestamp: str = ""
+    # Per-turn trace: list of {turn, tool, reasoning, args_summary, result_summary}.
+    trace: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -99,6 +103,8 @@ class EvalResult:
             "tool_calls": self.tool_calls,
             "explanation": self.explanation,
             "perf_by_size": self.perf_by_size,
+            "timestamp": self.timestamp,
+            "trace": self.trace,
         }
 
 
