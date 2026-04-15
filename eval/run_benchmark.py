@@ -144,12 +144,14 @@ def main():
                 traces_dir.mkdir(exist_ok=True)
                 ts = result.timestamp.replace(":", "-")
                 trace_out = traces_dir / f"{stem}_{ts}.json"
+                # Strip full code from trace args (already in code_versions)
                 trace_out.write_text(json.dumps({
                     "problem_id": pid,
                     "isa": args.isa,
                     "model": args.model,
                     "timestamp": result.timestamp,
                     "trace": result.trace,
+                    "code_versions": result.code_versions,
                 }, indent=2))
 
     # ── Print summary ─────────────────────────────────────────────────────

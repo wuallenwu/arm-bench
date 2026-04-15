@@ -90,6 +90,9 @@ class EvalResult:
     timestamp: str = ""
     # Per-turn trace: list of {turn, tool, reasoning, args_summary, result_summary}.
     trace: list = field(default_factory=list)
+    # All code versions attempted during the session (full code + metrics).
+    # Excluded from to_dict() to keep results JSON small; saved separately in traces/.
+    code_versions: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {

@@ -85,7 +85,11 @@ Example — FP32 SAXPY optimized with SVE:
 """
 
 
-def _compress_history(messages: list[dict], keep_full_turns: int = 2) -> list[dict]:
+def _compress_history(
+    messages: list[dict],
+    keep_full_turns: int = 2,
+    code_versions: list[dict] | None = None,
+) -> list[dict]:
     """
     Compress old turns to keep context size bounded.
 
@@ -95,6 +99,9 @@ def _compress_history(messages: list[dict], keep_full_turns: int = 2) -> list[di
         Failed compile code is kept verbatim so the model remembers what to avoid.
       - disassemble asm: always compressed (large, not needed after inspection)
       - run/perf results: already small, always kept verbatim
+
+    code_versions: if provided, a version history table is injected into the recap
+    so the agent can see all attempts and their metrics at a glance.
 
     Message structure is preserved exactly (tool_call_ids remain valid).
     messages[0] = system, messages[1] = initial user — always kept verbatim.
@@ -119,37 +126,63 @@ def _compress_history(messages: list[dict], keep_full_turns: int = 2) -> list[di
     # Everything from this index onward is kept verbatim
     keep_from = assistant_indices[-keep_full_turns]
 
-    # Build a compact state recap from the messages being compressed, so the agent
-    # knows its current situation without needing to see the old code.
-    last_correct_run: dict | None = None
-    last_perf: dict | None = None
-    for msg in messages[:keep_from]:
-        if msg["role"] == "tool":
-            try:
-                content = json.loads(msg["content"])
-                if "correct" in content and content.get("correct"):
-                    last_correct_run = content
-                if "ipc" in content:
-                    last_perf = content
-            except (json.JSONDecodeError, KeyError):
-                pass
-
     recap_parts = ["[History compressed — earlier turns omitted to save context.]"]
-    if last_correct_run:
-        recap_parts.append(
-            f"Your last correct run: runtime_ms={last_correct_run.get('runtime_ms')}."
-        )
-    if last_perf:
-        recap_parts.append(
-            f"Your last perf result: IPC={last_perf.get('ipc')}, "
-            f"task_clock_ms={last_perf.get('task_clock_ms')}, "
-            f"cache_misses_per_iter={last_perf.get('cache_misses_per_iter')}."
-        )
+
+    # Version history table — richer than the old last_correct_run/last_perf recap
+    if code_versions:
+        correct_versions = [v for v in code_versions if v.get("correct")]
+        if correct_versions:
+            best = min(correct_versions, key=lambda v: v.get("ms_per_iter") or float("inf"))
+            recap_parts.append("All correct implementations found so far:")
+            for v in correct_versions:
+                ms = v.get("ms_per_iter")
+                ms_str = f"{ms:.4f}ms/iter" if ms is not None else "timing unknown"
+                perf = v.get("perf") or {}
+                ipc_str = f", IPC={perf['ipc']}" if perf.get("ipc") else ""
+                tc_str = f", task_clock={perf['task_clock_ms']}ms" if perf.get("task_clock_ms") else ""
+                best_marker = " ← BEST" if v is best else ""
+                recap_parts.append(
+                    f"  v{v['version']} [turn {v['turn']}]: {ms_str}{ipc_str}{tc_str}{best_marker}"
+                )
+            recap_parts.append(
+                f"Best so far: v{best['version']} ({best.get('ms_per_iter', '?'):.4f}ms/iter). "
+                "Try to beat it, or submit it if you can't improve further."
+            )
+        elif code_versions:
+            # Compiles attempted but none correct yet
+            recap_parts.append(
+                f"{len(code_versions)} compile attempt(s) so far — none produced a correct result yet."
+            )
+    else:
+        # Fallback to old-style recap if no version tracking available
+        last_correct_run: dict | None = None
+        last_perf: dict | None = None
+        for msg in messages[:keep_from]:
+            if msg["role"] == "tool":
+                try:
+                    content = json.loads(msg["content"])
+                    if "correct" in content and content.get("correct"):
+                        last_correct_run = content
+                    if "ipc" in content:
+                        last_perf = content
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        if last_correct_run:
+            recap_parts.append(
+                f"Your last correct run: runtime_ms={last_correct_run.get('runtime_ms')}."
+            )
+        if last_perf:
+            recap_parts.append(
+                f"Your last perf result: IPC={last_perf.get('ipc')}, "
+                f"task_clock_ms={last_perf.get('task_clock_ms')}, "
+                f"cache_misses_per_iter={last_perf.get('cache_misses_per_iter')}."
+            )
+
     recap_parts.append(
         "The most recently compiled binary is still active on the remote — "
         "call run() or perf() to test it, or compile() a new version to improve."
     )
-    recap_msg = {"role": "user", "content": " ".join(recap_parts)}
+    recap_msg = {"role": "user", "content": "\n".join(recap_parts)}
 
     result = []
     recap_inserted = False
@@ -275,7 +308,10 @@ def run_agentic_eval(
 
     run_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     final_result: EvalResult | None = None
-    trace: list[dict] = []  # per-turn record of reasoning + tool usage
+    trace: list[dict] = []       # per-turn record of reasoning + tool usage
+    code_versions: list[dict] = []  # every attempted version: code + metrics
+    best_correct: dict | None = None  # {version, code, ms_per_iter} — fastest correct seen
+    agent_submitted_code: str | None = None  # code the agent explicitly submitted
 
     for turn in range(max_turns):
         if verbose:
@@ -295,7 +331,7 @@ def run_agentic_eval(
                 ),
             })
 
-        compressed = _compress_history(messages)
+        compressed = _compress_history(messages, code_versions=code_versions)
         for _retry in range(6):
             try:
                 response = litellm.completion(
@@ -387,8 +423,40 @@ def run_agentic_eval(
             # Only emit reasoning once per turn (may have multiple tool calls)
             reasoning_text = ""
 
-            # Capture submit result — only lock in if it actually compiled and ran
+            # ── Version tracking ─────────────────────────────────────────────
+            if fn_name == "compile" and result_dict.get("success"):
+                code_versions.append({
+                    "version": len(code_versions) + 1,
+                    "turn": turn + 1,
+                    "code": fn_args.get("code", ""),
+                    "correct": False,
+                    "ms_per_iter": None,
+                    "perf": None,
+                })
+            elif fn_name == "run" and result_dict.get("correct") and code_versions:
+                n = fn_args.get("n", 100)
+                total_ms = result_dict.get("runtime_ms")
+                ms_per_iter = round(total_ms / n, 6) if total_ms and n else None
+                code_versions[-1]["correct"] = True
+                code_versions[-1]["ms_per_iter"] = ms_per_iter
+                # Update best_correct if this is the fastest correct version seen
+                if ms_per_iter is not None:
+                    if best_correct is None or ms_per_iter < best_correct["ms_per_iter"]:
+                        best_correct = {
+                            "version": code_versions[-1]["version"],
+                            "code": tools._last_candidate_code or fn_args.get("code", ""),
+                            "ms_per_iter": ms_per_iter,
+                        }
+            elif fn_name == "perf" and code_versions:
+                code_versions[-1]["perf"] = {
+                    "ipc": result_dict.get("ipc"),
+                    "task_clock_ms": result_dict.get("task_clock_ms"),
+                    "cache_misses_per_iter": result_dict.get("cache_misses_per_iter"),
+                }
+
+            # ── Capture submit result ─────────────────────────────────────────
             if fn_name == "submit":
+                agent_submitted_code = fn_args.get("code", "")
                 er = EvalResult(**{k: result_dict[k] for k in EvalResult.__dataclass_fields__
                                    if k in result_dict})
                 er.tool_calls = tools._tool_calls
@@ -439,8 +507,41 @@ def run_agentic_eval(
             tool_calls=tools._tool_calls,
         )
 
+    # ── Auto-resubmit best version if it differs from what the agent submitted ──
+    # The agent may have submitted a later (worse) version, or may not have submitted
+    # at all. Re-score the best correct version seen and use it if faster.
+    if best_correct and best_correct.get("code") and best_correct["code"] != agent_submitted_code:
+        if verbose:
+            print(f"\n[Auto-submit] Re-scoring best version "
+                  f"(v{best_correct['version']}, {best_correct['ms_per_iter']:.4f}ms/iter during session)...")
+        try:
+            better = tools.submit(
+                best_correct["code"],
+                explanation=(
+                    f"[auto-submitted: v{best_correct['version']} had best runtime "
+                    f"({best_correct['ms_per_iter']:.4f}ms/iter) during session]"
+                ),
+            )
+            better.tool_calls = tools._tool_calls
+            if better.correct and (
+                final_result is None
+                or final_result.runtime_ms is None
+                or (better.runtime_ms and better.runtime_ms < final_result.runtime_ms)
+            ):
+                if verbose:
+                    print(f"  → v{best_correct['version']} scores better "
+                          f"({better.runtime_ms}ms vs {final_result.runtime_ms if final_result else '?'}ms) — using it")
+                final_result = better
+            else:
+                if verbose:
+                    print(f"  → Agent's submission was already optimal — keeping it")
+        except Exception as e:
+            if verbose:
+                print(f"  [auto-submit failed: {e}]")
+
     final_result.timestamp = run_timestamp
     final_result.trace = trace
+    final_result.code_versions = code_versions
 
     if verbose:
         print(f"\n[Final Result]")

@@ -105,7 +105,33 @@ def print_trace(trace_path: Path):
     data = json.loads(trace_path.read_text())
     print(f"\nTrace: {data.get('problem_id')} | isa={data.get('isa')} | model={data.get('model')}")
     print(f"Timestamp: {data.get('timestamp')}")
-    print(f"{'─'*72}")
+
+    # Code version summary table
+    versions = data.get("code_versions", [])
+    correct_versions = [v for v in versions if v.get("correct")]
+    if versions:
+        print(f"\n{'─'*72}")
+        print(f"  Code versions ({len(versions)} compiled, {len(correct_versions)} correct)")
+        print(f"  {'v':>3}  {'turn':>4}  {'ms/iter':>9}  {'IPC':>6}  {'task_clk':>10}  notes")
+        print(f"  {'─'*60}")
+        best_ms = min((v["ms_per_iter"] for v in correct_versions if v.get("ms_per_iter")), default=None)
+        for v in versions:
+            ms = v.get("ms_per_iter")
+            perf = v.get("perf") or {}
+            ipc = perf.get("ipc", "")
+            tc = perf.get("task_clock_ms", "")
+            ms_str = f"{ms:.4f}" if ms is not None else "    —  "
+            ipc_str = f"{ipc:.2f}" if ipc else "    —"
+            tc_str = f"{tc:.4f}" if tc else "      —  "
+            notes = ""
+            if not v.get("correct"):
+                notes = "incorrect"
+            elif ms is not None and ms == best_ms:
+                notes = "← BEST"
+            print(f"  {v['version']:>3}  {v['turn']:>4}  {ms_str:>9}  {ipc_str:>6}  {tc_str:>10}  {notes}")
+
+    print(f"\n{'─'*72}")
+    print("  Per-turn reasoning:")
 
     for entry in data.get("trace", []):
         turn = entry.get("turn")
@@ -117,7 +143,6 @@ def print_trace(trace_path: Path):
         print(f"\n[Turn {turn}] → {tool}")
 
         if reasoning:
-            # Print first 400 chars of reasoning
             preview = reasoning[:400] + ("..." if len(reasoning) > 400 else "")
             for line in preview.splitlines():
                 print(f"  thinking: {line}")
