@@ -23,22 +23,29 @@ import json
 import time
 from pathlib import Path
 
-from eval.config import REPO_ROOT, load_problems, ISA_TIER
+from eval.config import REPO_ROOT, load_problems, load_ncnn_problems, ISA_TIER
 from eval.evaluator import run_agentic_eval
 from eval.provision import get_or_provision, get_running_instance, teardown, provision, ISA_INSTANCE_MAP
-from eval.tools import EvalResult
+from eval.tools import EvalResult, NCNNTools, NCNN_SYSTEM_PROMPT, build_ncnn_user_prompt
 
 RESULTS_DIR = REPO_ROOT / "results"
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Agentic LLM benchmark for simd-loops SIMD kernels"
+        description="Agentic LLM benchmark for simd-loops SIMD kernels and ncnn kernels"
+    )
+
+    # Mode selection
+    parser.add_argument(
+        "--mode", choices=["simd", "ncnn"], default="simd",
+        help="Evaluation mode: 'simd' for SIMD loop problems (default), "
+             "'ncnn' for ncnn kernel optimization problems",
     )
 
     # Problem selection
     grp = parser.add_mutually_exclusive_group(required=True)
-    grp.add_argument("--problem", help="Single problem ID, e.g. loop_001")
+    grp.add_argument("--problem", help="Single problem ID, e.g. loop_001 (simd) or conv2d (ncnn)")
     grp.add_argument("--all", action="store_true", help="Run all problems for the given ISA")
 
     # Model and ISA
@@ -84,15 +91,18 @@ def main():
             handle = provision(instance_type)
 
     # ── Resolve problems ──────────────────────────────────────────────────
-    problems = load_problems()
+    if args.mode == "ncnn":
+        problems = load_ncnn_problems()
+    else:
+        problems = load_problems()
+
     if args.problem:
         if args.problem not in problems:
-            print(f"Problem {args.problem!r} not found in problems.json")
+            src = "starter/problems.json" if args.mode == "ncnn" else "problems.json"
+            print(f"Problem {args.problem!r} not found in {src}")
             return
         problem_ids = [args.problem]
     else:
-        # SVE2 is a strict superset of SVE — run sve/sve2-tagged problems on c8g.
-        # SVE-only problems are valid SVE2 targets; the agent can use SVE2 intrinsics.
         if args.isa == "sve2":
             valid_targets = {"sve", "sve2"}
         else:
@@ -101,11 +111,20 @@ def main():
             pid for pid, p in problems.items()
             if p.get("isa_target") in valid_targets
         ]
-        print(f"Running {len(problem_ids)} problems (ISA: {args.isa})")
+        print(f"Running {len(problem_ids)} problems (mode: {args.mode}, ISA: {args.isa})")
 
     # ── Run evaluations ───────────────────────────────────────────────────
     results: dict[str, EvalResult] = {}
     RESULTS_DIR.mkdir(exist_ok=True)
+
+    # NCNN mode: pass custom tools class, system prompt, and user prompt builder
+    ncnn_kwargs = {}
+    if args.mode == "ncnn":
+        ncnn_kwargs = {
+            "tools_class": NCNNTools,
+            "system_prompt_override": NCNN_SYSTEM_PROMPT,
+            "user_prompt_builder": build_ncnn_user_prompt,
+        }
 
     for i, pid in enumerate(problem_ids):
         print(f"\n[{i+1}/{len(problem_ids)}] {pid}")
@@ -117,6 +136,8 @@ def main():
                 handle=handle,
                 max_turns=args.max_turns,
                 verbose=not args.quiet,
+                problem_override=problems[pid] if args.mode == "ncnn" else None,
+                **ncnn_kwargs,
             )
         except Exception as e:
             print(f"  ERROR: {e}")

@@ -163,6 +163,39 @@ def provision(instance_type: str = "c7g.large", initial_build: str = "") -> Inst
     return handle
 
 
+def provision_codebase(handle: InstanceHandle,codebase:str) -> None:
+    """
+    Sync the codebase to the remote instance for cpu kernel codebase evaluation.
+
+    The codebase source is expected at CPU-Kernel-Baseline/{codebase}/ relative to arm-bench's
+    parent directory. It is rsynced to ~/{codebase}/ on the remote instance, which is
+    the path that NCNNTools expects.
+
+    Args:
+        handle: An InstanceHandle already connected to the remote instance.
+    """
+    # Look for ncnn/ in the CPU-Kernel-Baseline repo next to arm-bench
+    codebase_dir = REPO_ROOT.parent / "CPU-Kernel-Baseline" / codebase
+    if not codebase_dir.exists():
+        # Fallback: look for ncnn/ directly next to arm-bench
+        codebase_dir = REPO_ROOT.parent / codebase
+        if not codebase_dir.exists():
+            raise FileNotFoundError(
+                f"ncnn codebase not found. Looked at:\n"
+                f"  {REPO_ROOT.parent / 'CPU-Kernel-Baseline' / codebase}\n"
+                f"  {REPO_ROOT.parent / codebase}\n"
+                f"Make sure CPU-Kernel-Baseline/{codebase} exists relative to arm-bench."
+            )
+
+    print(f"[provision_codebase] Rsyncing {codebase_dir} → {handle.host}:~/{codebase}/ ...")
+    handle.rsync_to(
+        str(codebase_dir),
+        f"~/{codebase}",
+        excludes=["build", ".git", "__pycache__", "*.o", "*.d", "*.pyc"],
+    )
+    print(f"[provision_codebase] {codebase} codebase synced.")
+
+
 def teardown():
     """Run terraform destroy to terminate the instance."""
     print("[teardown] Running terraform destroy...")
@@ -271,12 +304,17 @@ if __name__ == "__main__":
     parser.add_argument("--status", action="store_true", help="Show instance status")
     parser.add_argument("--initial-build", default="",
                         help="Run make <target> after provision (default: skip)")
+    parser.add_argument("--codebase",default="ncnn",help="CPU kernel baseline codebase selection")
     args = parser.parse_args()
 
     if args.status:
         status()
     elif args.teardown:
         teardown()
+    elif args.codebase:
+        instance_type = ISA_INSTANCE_MAP.get(args.isa, args.instance) if args.isa else args.instance
+        handle = provision_codebase(instance_type, args.codebase)
+        print(f"\nInstance handle: {handle}")
     else:
         instance_type = ISA_INSTANCE_MAP.get(args.isa, args.instance) if args.isa else args.instance
         handle = provision(instance_type, args.initial_build)

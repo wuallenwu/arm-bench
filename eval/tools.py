@@ -7,7 +7,10 @@ These are the tools exposed to the LLM agent (compile, run, perf, disassemble, s
 The agent writes C code only — it never sees SSH commands or bash.
 """
 
+import json
+import os
 import re
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -927,3 +930,717 @@ def _parse_perf_counter(text: str, event: str) -> int | None:
     if m:
         return int(m.group(1).replace(",", ""))
     return None
+
+
+# ─── NCNNTools ────────────────────────────────────────────────────────────────
+
+# Injection markers (these are in the starter .cpp files)
+_NCNN_CANDIDATE_START = "// CANDIDATE_INJECT_START"
+_NCNN_CANDIDATE_END = "// CANDIDATE_INJECT_END"
+_NCNN_BASELINE_START = "// BASELINE_INJECT_START"
+_NCNN_BASELINE_END = "// BASELINE_INJECT_END"
+_NCNN_CANDIDATE_TC_START = "// CANDIDATE_TESTCASE_START"
+_NCNN_CANDIDATE_TC_END = "// CANDIDATE_TESTCASE_END"
+_NCNN_BASELINE_TC_START = "// BASELINE_TESTCASE_START"
+_NCNN_BASELINE_TC_END = "// BASELINE_TESTCASE_END"
+
+# cmake targets needed per starter file: (cmake_libs, extra_include_subdirs)
+_NCNN_STARTER_DEPS: dict[str, tuple[list[str], list[str]]] = {
+    "convolution.cpp":            (["ncnn_stub", "mapped_conv_arm", "mapped_conv_base"], ["arm-heavy-optimized/conv"]),
+    "convolution1d.cpp":          (["ncnn_stub", "mapped_conv_arm", "mapped_conv_base"], ["arm-heavy-optimized/conv"]),
+    "convolutiondepthwise.cpp":   (["ncnn_stub", "mapped_conv_arm", "mapped_conv_base"], ["arm-heavy-optimized/conv"]),
+    "deconvolution.cpp":          (["ncnn_stub", "mapped_conv_arm", "mapped_conv_base"], ["arm-heavy-optimized/conv"]),
+    "deconvolutiondepthwise.cpp": (["ncnn_stub", "mapped_conv_arm", "mapped_conv_base"], ["arm-heavy-optimized/conv"]),
+}
+
+# System prompt for NCNN kernel optimization (replaces SIMD loop system prompt)
+NCNN_SYSTEM_PROMPT = """\
+You are an expert ARM NEON programmer. Your task is to optimize a C++ ncnn kernel \
+implementation for {isa_desc}.
+
+The kernel is a C++ class inheriting from ncnn::Layer. The key method to optimize is \
+`forward(const Mat& bottom_blob, Mat& top_blob, const Option& opt) const`.
+
+You have access to these tools:
+  - compile(code): Upload and compile your implementation, then run correctness tests.
+  - run(n): Run the test suite n times and verify all tests pass.
+  - perf(n): Collect hardware PMU counters: cycles, IPC, cache_misses_per_iter, task_clock_ms.
+  - disassemble(fn): See the generated AArch64 assembly for a specific function.
+  - submit(code, explanation): Submit your final implementation for scoring.
+
+Workflow — follow this order:
+  1. compile() your first attempt (the complete file, not just the function).
+  2. run() to verify all test cases pass (look for "0 / N passed" → failure; "N / N passed" → success).
+  3. perf() after every correct implementation to measure hardware counters.
+     - IPC < 1.5 usually means poor vectorization or memory bottleneck.
+     - task_clock_ms is on-CPU time per invocation — use it to compare implementations.
+  4. disassemble(fn) to check that NEON instructions were generated.
+  5. Iterate: if IPC is low, try better vectorization and perf() again.
+  6. submit() once you have a correct, profiled implementation you are happy with.
+
+Key rules:
+  - Submit the **complete file** (all class members, not just the forward() function).
+  - You may include <arm_neon.h> and use NEON intrinsics (float32x4_t, vshlq_n_s32, etc.).
+  - Do NOT add #ifdef guards for feature detection — the build system handles that.
+  - The test suite checks float outputs against a reference with 1e-3 tolerance.
+  - Always call perf() after confirming correctness — do not submit without profiling.
+
+Reasoning requirement — BEFORE every tool call, write a short paragraph covering:
+  1. Observation: what the last result told you (perf numbers, correctness, asm pattern).
+  2. Hypothesis: what specific bottleneck or opportunity you are targeting next.
+  3. Change: for compile(), describe the exact code change you are making and why.
+  Keep it to 3-5 sentences.
+"""
+
+
+def build_ncnn_user_prompt(problem: dict, isa: str) -> str:
+    """Build the initial user message for an ncnn kernel optimization problem."""
+    from eval.config import ISA_INSTANCE_DESC
+    isa_desc = ISA_INSTANCE_DESC.get(isa, isa)
+    description = problem.get("description", "")
+    struct_def = problem.get("struct_def", "")   # header file content
+    scalar_code = problem.get("scalar_code", "")  # current .cpp content
+
+    return f"""\
+Problem: {problem["name"]}
+Purpose: {description}
+ISA target: {isa.upper()} on {isa_desc}
+
+Class interface (header file — do not modify):
+```cpp
+{struct_def}
+```
+
+Current implementation (your task: optimize this file with NEON intrinsics):
+```cpp
+{scalar_code}
+```
+
+The test suite compiles your file, links it with the ncnn framework, and checks \
+correctness against a reference implementation.
+
+Write an optimized NEON implementation. Submit the **complete .cpp file** \
+(preserving the class structure). Start by calling compile() with your first attempt.
+"""
+
+
+class NCNNTools:
+    """
+    SSH-backed tools for compiling and testing ncnn kernel implementations.
+
+    Mirrors the SIMDTools interface (compile/run/perf/disassemble/submit/
+    tool_schemas/dispatch_tool_call) so it can be used as a drop-in replacement
+    in the agentic eval loop.
+
+    The agent writes the full candidate source file (e.g. convolution.cpp).
+    compile() uploads it, rebuilds the ncnn cmake libs, then compiles the
+    starter test harness against the updated library to produce a test binary.
+    """
+
+    # Remote directory layout (on the EC2 instance)
+    REMOTE_NCNN_ROOT = "~/ncnn"
+    REMOTE_STARTER_DIR = "~/simd-loops/starter"
+    REMOTE_BUILD_DIR = "~/simd-loops/starter/build"
+    REMOTE_CMAKE_BUILD = "~/ncnn/mapped/tests/build"
+
+    def __init__(self, handle: InstanceHandle, problem_id: str, isa: str):
+        self.handle = handle
+        self.problem_id = problem_id
+        self.isa = isa
+        self._last_compile_ok = False
+        self._binary_exists = False
+        self._tool_calls = 0
+        self._last_candidate_code: str | None = None
+        self._cmake_configured = False  # True once cmake .. has run this session
+
+        # Load problem metadata from starter/problems.json
+        starter_problems_path = REPO_ROOT / "starter" / "problems.json"
+        if not starter_problems_path.exists():
+            raise FileNotFoundError(
+                f"starter/problems.json not found. "
+                f"Make sure arm-bench/starter/ is populated."
+            )
+        problems = json.loads(starter_problems_path.read_text())
+        self._problem_meta = next(
+            (p for p in problems if p["id"] == problem_id), None
+        )
+        if self._problem_meta is None:
+            raise KeyError(f"Problem {problem_id!r} not found in starter/problems.json")
+
+        self._starter_file: str = self._problem_meta["starter"]   # e.g. "convolution.cpp"
+        # Path relative to ncnn root, e.g. "mapped/convolution/convolution.cpp"
+        self._candidate_source: str = self._problem_meta["candidate_source"]
+
+        stem = self._starter_file.rsplit(".", 1)[0]
+        self.remote_binary = f"{self.REMOTE_BUILD_DIR}/{stem}"
+
+        # Used by evaluator auto-fail path (fewer iterations than SIMD loops)
+        self._autofail_n = 10
+
+    def _load_baseline_for_problem(self) -> dict:
+        """Return the baseline entry for this problem from baselines/ncnn.json."""
+        from eval.config import load_ncnn_baselines
+        return load_ncnn_baselines().get(self.problem_id, {})
+
+    # ─── Private helpers ──────────────────────────────────────────────────────
+
+    def _run_remote(self, cmd: str, timeout: int = 120) -> tuple[int, str, str]:
+        return self.handle.run(cmd, timeout=timeout)
+
+    def _upload(self, local_path: str, remote_path: str) -> None:
+        self.handle.upload_file(local_path, remote_path)
+
+    def _setup_cmake(self) -> CompileResult | None:
+        """
+        Run cmake configuration once per session (first compile call).
+        Returns a CompileResult on failure, None on success.
+        """
+        if self._cmake_configured:
+            return None
+        march = {
+            "neon": "armv8.2-a+fp16+dotprod",
+            "sve":  "armv8.2-a+fp16+dotprod+sve",
+            "sve2": "armv8.2-a+fp16+dotprod+sve2",
+        }.get(self.isa, "armv8.2-a+fp16+dotprod")
+
+        cmake_configure_cmd = (
+            f"mkdir -p {self.REMOTE_CMAKE_BUILD} && "
+            f"cd {self.REMOTE_CMAKE_BUILD} && "
+            f"cmake .. -DCMAKE_BUILD_TYPE=Release "
+            f"-DCMAKE_CXX_FLAGS='-march={march}' 2>&1"
+        )
+        rc, output, _ = self._run_remote(cmake_configure_cmd, timeout=60)
+        if rc != 0:
+            return CompileResult(
+                success=False,
+                errors=f"cmake configuration failed:\n{output[:500]}"
+            )
+        self._cmake_configured = True
+        return None
+
+    @staticmethod
+    def _strip_block(source: str, start_marker: str, end_marker: str) -> str:
+        """Remove everything between (and including) start_marker…end_marker."""
+        return re.sub(
+            re.escape(start_marker) + ".*?" + re.escape(end_marker),
+            "",
+            source,
+            flags=re.DOTALL,
+        )
+
+    @staticmethod
+    def _extract_test_functions(source: str, start_marker: str, end_marker: str) -> list[str]:
+        """Extract test function names from a TESTCASE block."""
+        m = re.search(
+            re.escape(start_marker) + r"(.*?)" + re.escape(end_marker),
+            source, flags=re.DOTALL,
+        )
+        if not m:
+            return []
+        return re.findall(r"void\s+(test_\w+)\s*\(\s*\)", m.group(1))
+
+    @staticmethod
+    def _generate_main(test_funcs: list[str], suite_name: str) -> str:
+        lines = ["\n// ── Auto-generated main ──────────────────────────────────────"]
+        for fn in test_funcs:
+            lines.append(f"void {fn}();")
+        lines.append("")
+        lines.append("int main() {")
+        for fn in test_funcs:
+            lines.append(f"    RUN_TEST({fn});")
+        lines.append(f'    print_summary("{suite_name}");')
+        lines.append("    return g_failed ? 1 : 0;")
+        lines.append("}")
+        return "\n".join(lines) + "\n"
+
+    def _cmake_build_libs(self, cmake_targets: list[str]) -> tuple[int, str]:
+        """Run cmake --build to incrementally rebuild changed libs."""
+        targets_str = " ".join(f"--target {t}" for t in cmake_targets)
+        cmd = (
+            f"cmake --build {self.REMOTE_CMAKE_BUILD} "
+            f"{targets_str} -j$(nproc) 2>&1"
+        )
+        rc, output, _ = self._run_remote(cmd, timeout=180)
+        return rc, output
+
+    def _compile_candidate_binary(
+        self,
+        starter_candidate_remote: str,
+        cmake_libs: list[str],
+        extra_inc_dirs: list[str],
+    ) -> tuple[int, str]:
+        """clang++ compile+link starter_candidate.cpp → self.remote_binary."""
+        march = {
+            "neon": "armv8.2-a+fp16+dotprod",
+            "sve":  "armv8.2-a+fp16+dotprod+sve",
+            "sve2": "armv8.2-a+fp16+dotprod+sve2",
+        }.get(self.isa, "armv8.2-a+fp16+dotprod")
+
+        include_flags = (
+            f"-I {self.REMOTE_STARTER_DIR} "
+            f"-I {self.REMOTE_NCNN_ROOT} "
+            f"-I {self.REMOTE_NCNN_ROOT}/framework"
+        )
+        for subdir in extra_inc_dirs:
+            include_flags += f" -I {self.REMOTE_NCNN_ROOT}/{subdir}"
+
+        lib_flags = " ".join(
+            f"{self.REMOTE_CMAKE_BUILD}/lib{t}.a" for t in cmake_libs
+        )
+
+        cmd = (
+            f"mkdir -p {self.REMOTE_BUILD_DIR} && "
+            f"clang++ -O2 -std=c++14 -march={march} -fopenmp "
+            f"{include_flags} "
+            f"{starter_candidate_remote} "
+            f"{lib_flags} -lm -lstdc++ "
+            f"-o {self.remote_binary} 2>&1"
+        )
+        rc, output, _ = self._run_remote(cmd, timeout=120)
+        return rc, output
+
+    # ─── Tool: compile ────────────────────────────────────────────────────────
+
+    def compile(self, code: str) -> CompileResult:
+        """
+        Compile the agent's ncnn kernel implementation.
+
+        Args:
+            code: Complete C++ source file for the candidate kernel
+                  (e.g. the full convolution.cpp). Must preserve the class
+                  interface defined in the header.
+
+        Returns:
+            CompileResult with success flag and any errors/warnings.
+        """
+        self._tool_calls += 1
+
+        # Guard against history-compression placeholders
+        if "[prior successful attempt:" in code and "omitted" in code:
+            return CompileResult(
+                success=False,
+                errors=(
+                    "You submitted a history-compression placeholder, not real code. "
+                    "The prior binary is still compiled on the remote — call run() or perf() "
+                    "to test it, or write a fresh implementation to compile()."
+                ),
+            )
+
+        # 1. Configure cmake on first call
+        err = self._setup_cmake()
+        if err is not None:
+            self._last_compile_ok = False
+            return err
+
+        # 2. Upload agent's code to the candidate source file
+        remote_candidate_src = f"{self.REMOTE_NCNN_ROOT}/{self._candidate_source}"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cpp", delete=False) as f:
+            f.write(code)
+            tmp_path = f.name
+        try:
+            self._upload(tmp_path, remote_candidate_src)
+        finally:
+            os.unlink(tmp_path)
+
+        # 3. Rebuild ncnn cmake libs (incremental — only recompiles changed files)
+        cmake_libs, extra_inc_dirs = _NCNN_STARTER_DEPS.get(
+            self._starter_file, (["ncnn_stub", "mapped_conv_base"], [])
+        )
+        rc, cmake_output = self._cmake_build_libs(cmake_libs)
+        if rc != 0:
+            self._last_compile_ok = False
+            errors = "\n".join(
+                l for l in cmake_output.splitlines() if "error:" in l.lower()
+            )
+            return CompileResult(
+                success=False,
+                errors=errors or f"cmake build failed:\n{cmake_output[:500]}"
+            )
+
+        # 4. Generate candidate test source (strip BASELINE blocks, add main())
+        local_starter = REPO_ROOT / "starter" / self._starter_file
+        source = local_starter.read_text()
+
+        candidate_src = source
+        if _NCNN_BASELINE_START in source:
+            candidate_src = self._strip_block(candidate_src, _NCNN_BASELINE_START, _NCNN_BASELINE_END)
+        if _NCNN_BASELINE_TC_START in candidate_src:
+            candidate_src = self._strip_block(candidate_src, _NCNN_BASELINE_TC_START, _NCNN_BASELINE_TC_END)
+
+        candidate_tests = self._extract_test_functions(
+            source, _NCNN_CANDIDATE_TC_START, _NCNN_CANDIDATE_TC_END
+        )
+        stem = self._starter_file.rsplit(".", 1)[0]
+        if candidate_tests:
+            candidate_src += self._generate_main(candidate_tests, f"{stem}_candidate")
+
+        # 5. Upload generated candidate source to remote
+        remote_candidate_test = f"{self.REMOTE_STARTER_DIR}/{stem}_candidate.cpp"
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cpp", delete=False) as f:
+            f.write(candidate_src)
+            tmp_path = f.name
+        try:
+            self._upload(tmp_path, remote_candidate_test)
+        finally:
+            os.unlink(tmp_path)
+
+        # 6. Compile starter binary
+        rc, cxx_output = self._compile_candidate_binary(
+            remote_candidate_test, cmake_libs, extra_inc_dirs
+        )
+
+        warnings = "\n".join(
+            l for l in cxx_output.splitlines()
+            if "warning:" in l.lower() and "error:" not in l.lower()
+        )
+        if rc != 0:
+            self._last_compile_ok = False
+            lines = cxx_output.splitlines()
+            is_linker_error = any("linker command failed" in l for l in lines)
+            errors = cxx_output if is_linker_error else (
+                "\n".join(l for l in lines if "error:" in l.lower()) or cxx_output[:500]
+            )
+            return CompileResult(success=False, errors=errors)
+
+        self._last_compile_ok = True
+        self._binary_exists = True
+        self._last_candidate_code = code
+        return CompileResult(success=True, warnings=warnings)
+
+    # ─── Tool: run ────────────────────────────────────────────────────────────
+
+    def run(self, n: int = 5, size: int | None = None) -> RunResult:
+        """
+        Run the compiled test binary and check correctness.
+
+        Args:
+            n:    Number of times to invoke the binary (for timing). The binary
+                  runs all test cases on each invocation.
+            size: Ignored for ncnn kernels (test cases have fixed configs).
+
+        Returns:
+            RunResult with correct flag and runtime_ms (total for n invocations).
+        """
+        self._tool_calls += 1
+        if not self._binary_exists:
+            return RunResult(correct=False, output="No compiled binary — run compile() first.")
+
+        time_cmd = (
+            f"t0=$(date +%s%N); "
+            f"for i in $(seq 1 {n}); do {self.remote_binary}; rc=$?; "
+            f"if [ $rc -ne 0 ]; then break; fi; done; "
+            f"t1=$(date +%s%N); "
+            f'echo "TIME_NS=$((t1-t0))"; '
+            f"last_rc=$rc; "
+            f"exit $last_rc"
+        )
+        rc, stdout, _ = self._run_remote(time_cmd, timeout=300)
+
+        # rc == 0: all test cases passed. rc != 0: at least one failed.
+        correct = (rc == 0)
+
+        runtime_ms = None
+        m = re.search(r"TIME_NS=(\d+)", stdout)
+        if m:
+            runtime_ms = round(int(m.group(1)) / 1e6, 3)
+
+        # Extract summary line from last output
+        output_clean = re.sub(r"TIME_NS=\d+", "", stdout).strip()
+        last_summary = ""
+        for line in output_clean.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("[") and "passed" in stripped:
+                last_summary = stripped
+        output_for_agent = last_summary or output_clean[-500:]
+
+        return RunResult(correct=correct, runtime_ms=runtime_ms, output=output_for_agent)
+
+    # ─── Tool: perf ───────────────────────────────────────────────────────────
+
+    def perf(self, n: int = 5, size: int | None = None) -> PerfResult:
+        """
+        Run perf stat to collect hardware PMU counters for the candidate binary.
+
+        Args:
+            n:    Number of binary invocations under perf.
+            size: Ignored for ncnn kernels.
+
+        Returns:
+            PerfResult with cycles, instructions, IPC, cache_misses_per_iter,
+            task_clock_ms.
+        """
+        self._tool_calls += 1
+        if not self._binary_exists:
+            return PerfResult(raw_output="No compiled binary — run compile() first.")
+
+        run_loop = (
+            f"for i in $(seq 1 {n}); do {self.remote_binary}; done"
+            if n > 1 else self.remote_binary
+        )
+        perf_cmd = (
+            f"PERF=$(ls /usr/lib/linux-aws-*-tools-*/perf 2>/dev/null | head -1); "
+            f"PERF=${{PERF:-perf}}; "
+            f"{self.remote_binary} >/dev/null 2>&1; "  # warmup
+            f"sudo $PERF stat "
+            f"-e cycles,instructions,cache-misses,task-clock "
+            f"bash -c '{run_loop}' "
+            f"2>&1"
+        )
+        rc, output, _ = self._run_remote(perf_cmd, timeout=300)
+        return SIMDTools._parse_perf_output(output, n)
+
+    # ─── Tool: disassemble ────────────────────────────────────────────────────
+
+    def disassemble(self, fn: str | None = None) -> DisasmResult:
+        """
+        Disassemble the compiled binary, optionally filtered to a function.
+
+        Truncates more aggressively than SIMDTools (ncnn binaries are large).
+        """
+        self._tool_calls += 1
+        if not self._last_compile_ok:
+            return DisasmResult(asm="No compiled binary — run compile() first.")
+
+        def _objdump_fn(name: str) -> str:
+            return (
+                f"llvm-objdump-18 -d {self.remote_binary} "
+                f"| awk '/<{name}>:/ {{p=1}} p && /<[a-zA-Z_].*>:/ && !/<{name}>:/ {{p=0}} p'"
+            )
+
+        if fn:
+            rc, output, stderr = self._run_remote(_objdump_fn(fn), timeout=60)
+            if rc != 0:
+                return DisasmResult(asm=f"objdump failed: {stderr}")
+        else:
+            rc, output, stderr = self._run_remote(
+                f"llvm-objdump-18 -d {self.remote_binary}", timeout=60
+            )
+            if rc != 0:
+                return DisasmResult(asm=f"objdump failed: {stderr}")
+
+        # Truncate to 200 lines (ncnn binaries are significantly larger)
+        lines = output.splitlines()
+        truncated = len(lines) > 200
+        asm = "\n".join(lines[:200])
+        if truncated:
+            asm += f"\n... (truncated at 200 lines; {len(lines)} total)"
+
+        return DisasmResult(asm=asm, bytes=len(output.encode()))
+
+    # ─── Tool: submit ─────────────────────────────────────────────────────────
+
+    def submit(self, code: str, explanation: str = "") -> EvalResult:
+        """
+        Final submission: compile, verify correctness, score against baselines.
+
+        Args:
+            code: Complete C++ source file to submit.
+            explanation: Agent's description of optimizations and perf results.
+
+        Returns:
+            EvalResult with correctness, speedup levels, and timing.
+        """
+        self._tool_calls += 1
+
+        cr = self.compile(code)
+        if not cr.success:
+            return EvalResult(
+                correct=False,
+                level=0,
+                compile_error=cr.errors,
+                tool_calls=self._tool_calls,
+            )
+
+        # Correctness check (n=1 for single-pass correctness)
+        rr = self.run(n=1)
+        if not rr.correct:
+            return EvalResult(
+                correct=False,
+                level=0,
+                tool_calls=self._tool_calls,
+            )
+
+        # Performance: run 10 invocations and get per-invocation timing
+        rr_perf = self.run(n=10)
+        runtime_ms = None
+        if rr_perf.runtime_ms is not None:
+            runtime_ms = round(rr_perf.runtime_ms / 10, 4)  # ms per invocation
+
+        # Load baselines
+        from eval.config import load_ncnn_baselines
+        baselines = load_ncnn_baselines()
+        baseline = baselines.get(self.problem_id, {})
+        scalar_ms = baseline.get("scalar_ms")    # C base (ncnn::Convolution)
+        autovec_ms = baseline.get("autovec_ms")   # ARM optimized (ncnn::Convolution_arm)
+        ref_ms = baseline.get("ref_ms")
+
+        speedup_vs_scalar = None
+        speedup_vs_autovec = None
+        speedup_vs_ref = None
+        level = 1  # correct
+
+        if runtime_ms and scalar_ms:
+            speedup_vs_scalar = round(scalar_ms / runtime_ms, 2)
+            if speedup_vs_scalar > 1.0:
+                level = 2
+
+        if runtime_ms and autovec_ms:
+            speedup_vs_autovec = round(autovec_ms / runtime_ms, 2)
+            if level >= 2 and speedup_vs_autovec > 1.0:
+                level = 3  # beats ARM baseline
+
+        if runtime_ms and ref_ms:
+            speedup_vs_ref = round(ref_ms / runtime_ms, 2)
+            if level >= 3 and speedup_vs_ref > 1.0:
+                level = 4
+
+        return EvalResult(
+            correct=True,
+            speedup_vs_scalar=speedup_vs_scalar,
+            speedup_vs_autovec=speedup_vs_autovec,
+            speedup_vs_ref=speedup_vs_ref,
+            level=level,
+            runtime_ms=runtime_ms,
+            tool_calls=self._tool_calls,
+            explanation=explanation,
+        )
+
+    # ─── OpenAI-compatible tool schemas ──────────────────────────────────────
+
+    @staticmethod
+    def tool_schemas() -> list[dict]:
+        """Return OpenAI-compatible function tool definitions for LiteLLM."""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "compile",
+                    "description": (
+                        "Upload and compile your ncnn kernel implementation. "
+                        "Runs correctness tests automatically after compilation. "
+                        "Submit the complete .cpp source file."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": (
+                                    "Your complete C++ ncnn kernel implementation (full file). "
+                                    "Must preserve the class interface (class name, constructor, "
+                                    "create_pipeline, forward signatures)."
+                                ),
+                            },
+                        },
+                        "required": ["code"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "run",
+                    "description": (
+                        "Run the compiled test binary and verify correctness. "
+                        "Reports pass/fail per test and total timing."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "n": {
+                                "type": "integer",
+                                "description": "Number of invocations for timing (default 5).",
+                                "default": 5,
+                            },
+                        },
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "perf",
+                    "description": (
+                        "Run perf stat to collect hardware PMU counters: "
+                        "cycles, instructions, IPC, cache_misses_per_iter, "
+                        "and task_clock_ms (on-CPU ms per invocation)."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "n": {
+                                "type": "integer",
+                                "description": "Number of binary invocations under perf (default 5).",
+                                "default": 5,
+                            },
+                        },
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "disassemble",
+                    "description": (
+                        "Disassemble the compiled binary, optionally filtered to a function. "
+                        "Useful for verifying NEON instructions were generated."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "fn": {
+                                "type": "string",
+                                "description": (
+                                    "Function name to filter to (e.g. 'forward'). "
+                                    "If omitted, returns partial full disassembly."
+                                ),
+                            },
+                        },
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "submit",
+                    "description": (
+                        "Submit your final implementation for scoring. "
+                        "Verifies correctness and computes speedup vs C base and ARM baseline. "
+                        "Call this when you have a correct, profiled implementation."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "code": {
+                                "type": "string",
+                                "description": "Your final optimized C++ implementation (complete file).",
+                            },
+                            "explanation": {
+                                "type": "string",
+                                "description": (
+                                    "Brief description of your approach: which NEON intrinsics you used, "
+                                    "why you chose them, and what perf() results you observed."
+                                ),
+                            },
+                        },
+                        "required": ["code", "explanation"],
+                    },
+                },
+            },
+        ]
+
+    def dispatch_tool_call(self, name: str, args: dict) -> dict:
+        """Dispatch a tool call by name and return a serializable result dict."""
+        if name == "compile":
+            return self.compile(args["code"]).to_tool_result()
+        elif name == "run":
+            return self.run(args.get("n", 5)).to_tool_result()
+        elif name == "perf":
+            return self.perf(args.get("n", 5)).to_tool_result()
+        elif name == "disassemble":
+            return self.disassemble(args.get("fn")).to_tool_result()
+        elif name == "submit":
+            result = self.submit(args["code"], explanation=args.get("explanation", ""))
+            return result.to_dict()
+        else:
+            return {"error": f"Unknown tool: {name}"}

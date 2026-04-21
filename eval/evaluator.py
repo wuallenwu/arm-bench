@@ -275,6 +275,10 @@ def run_agentic_eval(
     handle: InstanceHandle,
     max_turns: int = 20,
     verbose: bool = True,
+    tools_class=None,
+    problem_override: dict | None = None,
+    system_prompt_override: str | None = None,
+    user_prompt_builder=None,
 ) -> EvalResult:
     """
     Run one agentic evaluation session.
@@ -289,21 +293,36 @@ def run_agentic_eval(
         handle: SSH handle to the provisioned instance
         max_turns: Maximum agent turns before forced submit
         verbose: Print conversation turns
+        tools_class: Tools class to use (default: SIMDTools). Must implement the
+                     same interface (compile/run/perf/disassemble/submit/tool_schemas).
+        problem_override: If provided, use this problem dict instead of loading
+                          from problems.json. Useful for ncnn and other non-loop modes.
+        system_prompt_override: If provided, use this system prompt template
+                                instead of SYSTEM_PROMPT. Must accept {isa_desc}.
+        user_prompt_builder: If provided, use fn(problem, isa) -> str to build
+                             the initial user message instead of build_user_prompt.
 
     Returns:
         EvalResult from the submit() call (or a failed result if max_turns hit)
     """
-    problems = load_problems()
-    if problem_id not in problems:
-        raise KeyError(f"Problem {problem_id!r} not found in problems.json")
-    problem = problems[problem_id]
+    _ToolsClass = tools_class or SIMDTools
 
-    tools = SIMDTools(handle=handle, problem_id=problem_id, isa=isa)
-    schemas = SIMDTools.tool_schemas()
+    if problem_override is not None:
+        problem = problem_override
+    else:
+        problems = load_problems()
+        if problem_id not in problems:
+            raise KeyError(f"Problem {problem_id!r} not found in problems.json")
+        problem = problems[problem_id]
+
+    tools = _ToolsClass(handle=handle, problem_id=problem_id, isa=isa)
+    schemas = _ToolsClass.tool_schemas()
 
     isa_desc = ISA_INSTANCE_DESC.get(isa, isa)
-    system = SYSTEM_PROMPT.format(isa_desc=isa_desc)
-    user_msg = build_user_prompt(problem, isa)
+    sys_prompt_template = system_prompt_override or SYSTEM_PROMPT
+    system = sys_prompt_template.format(isa_desc=isa_desc)
+    _build_prompt = user_prompt_builder or build_user_prompt
+    user_msg = _build_prompt(problem, isa)
 
     messages = [
         {"role": "system", "content": system},
@@ -494,12 +513,17 @@ def run_agentic_eval(
     if final_result is None:
         if verbose:
             print("\n[Max turns reached — forcing final scoring run]")
-        # Try a no-op submit with the current compiled state
-        rr = tools.run(n=1000)
-        from eval.config import load_baselines, ISA_TIER
-        tier = ISA_TIER.get(isa, "c7g")
-        baselines = load_baselines(tier)
-        baseline = baselines.get(problem_id, {})
+        # Use a tools-class-specific iteration count (NCNNTools uses fewer)
+        _autofail_n = getattr(tools, "_autofail_n", 1000)
+        rr = tools.run(n=_autofail_n)
+        # Use tools-class-specific baseline loader if available (e.g. NCNNTools)
+        if hasattr(tools, "_load_baseline_for_problem"):
+            baseline = tools._load_baseline_for_problem()
+        else:
+            from eval.config import load_baselines, ISA_TIER
+            tier = ISA_TIER.get(isa, "c7g")
+            baselines = load_baselines(tier)
+            baseline = baselines.get(problem_id, {})
         scalar_ms = baseline.get("scalar_ms")
         autovec_ms = baseline.get("autovec_ms")
         ref_ms = baseline.get("ref_ms")

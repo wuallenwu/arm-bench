@@ -1,0 +1,72 @@
+[
+  {
+    "id": "conv2d",
+    "num": "001",
+    "name": "2d convolution",
+    "description": "general 2d convolution with arm baseline",
+    "isa_target": "sve",
+    "instance_type": "c7g.large",
+    "starter": "starter/ncnn/convolution.h",
+    "candidate_source":"candidate_src/ncnn/convolution.cpp",
+    "tester":"tests/ncnn/convolution.cpp",
+    "tags": [
+      "sve"
+    ]
+  },
+  {
+    "id": "convdepthwise",
+    "num": "002",
+    "name": "Depthwise convolution",
+    "description": "Use of depthwise convolution with arm baseline",
+    "isa_target": "sve",
+    "instance_type": "c7g.large",
+    "starter": "starter/ncnn/convolutiondepthwise.h",
+    "candidate_source":"candidate_src/ncnn/convolutiondepwise.cpp",
+    "tester":"tests/ncnn/convolutiondepwise.cpp",
+    "tags": [
+      "sve"
+    ]
+  },
+{
+    "id": "deconvolution",
+    "num": "003",
+    "name": "Deconvolution",
+    "description": "Use of deconvolution with arm baseline",
+    "isa_target": "sve",
+    "instance_type": "c7g.large",
+    "starter": "starter/ncnn/deconvolution.h",
+    "candidate_source":"candidate_src/ncnn/deconvolution.cpp",
+    "tester":"tests/ncnn/deconvolution.cpp",
+    "tags": [
+      "sve"
+    ]
+  },
+  {
+    "id": "deconvdepthwise",
+    "num": "004",
+    "name": "Depthwise deconvolution",
+    "description": "Use of depthwise deconvolution with arm baseline",
+    "isa_target": "sve",
+    "instance_type": "c7g.large",
+    "starter": "starter/ncnn/deconvolutiondepthwise.h",
+    "candidate_source":"candidate_src/ncnn/deconvolutiondepwise.cpp",
+    "tester":"tests/ncnn/deconvolutiondepwise.cpp",
+    "tags": [
+      "sve"
+    ]
+  },
+  {
+    "id": "conv1d",
+    "num": "005",
+    "name": "1D convolution",
+    "description": "Use of 1D convolution with arm baseline",
+    "isa_target": "sve",
+    "instance_type": "c7g.large",
+    "starter": "starter/ncnn/convolution1d.h",
+    "candidate_source":"candidate_src/ncnn/convolution1d.cpp",
+    "tester":"tests/ncnn/convolution1d.cpp",
+    "tags": [
+      "sve"
+    ]
+  }
+]
