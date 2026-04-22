@@ -16,7 +16,7 @@ provider "aws" {
 # ---------------------------------------------------------------------------
 
 variable "build_target" {
-  description = "simd-loops make target (scalar, neon, sve, sve2, sme2, all, ...)"
+  description = "arm-bench make target (scalar, neon, sve, sve2, sme2, all, ...)"
   default     = "sve"
   # c7g  = Graviton3 (Neoverse V1)  — SVE at 256-bit (no SVE2, no SME)
   # c8g  = Graviton4 (Neoverse V2)  — SVE2 at 128-bit (no SME)
@@ -78,7 +78,7 @@ resource "aws_instance" "kernel_testing" {
   key_name               = aws_key_pair.kernel_testing.key_name
   vpc_security_group_ids = [aws_security_group.kernel_testing.id]
 
-  # Installs clang-18 + llvm-objdump and creates ~/simd-loops
+  # Installs clang-18 + llvm-objdump and creates ~/arm-bench
   user_data = base64encode(file("${path.module}/setup.sh"))
 
   root_block_device {
@@ -95,7 +95,7 @@ resource "aws_instance" "kernel_testing" {
 # Deploy: sync source + build
 # Sequence:
 #   1. Wait for cloud-init (setup.sh) to finish installing the toolchain
-#   2. rsync the simd-loops tree from local → instance (excluding build artefacts)
+#   2. rsync the arm-bench tree from local → instance (excluding build artefacts)
 #   3. Build the requested make target on the instance
 # ---------------------------------------------------------------------------
 
@@ -127,14 +127,14 @@ resource "null_resource" "deploy" {
         --exclude=terraform \
         -e 'ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' \
         ${path.module}/../ \
-        ubuntu@${aws_instance.kernel_testing.public_ip}:~/simd-loops/
+        ubuntu@${aws_instance.kernel_testing.public_ip}:~/arm-bench/
     EOT
   }
 
   # 3. Build (optional — eval harness builds on demand with HAVE_CANDIDATE)
   provisioner "remote-exec" {
     inline = [
-      var.skip_initial_build ? "echo 'Skipping initial build (eval harness builds on demand)'" : "cd ~/simd-loops && make ${var.build_target}",
+      var.skip_initial_build ? "echo 'Skipping initial build (eval harness builds on demand)'" : "cd ~/arm-bench && make ${var.build_target}",
     ]
   }
 }
@@ -189,7 +189,7 @@ resource "null_resource" "deploy_c8g" {
         --exclude=terraform \
         -e 'ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' \
         ${path.module}/../ \
-        ubuntu@${aws_instance.c8g.public_ip}:~/simd-loops/
+        ubuntu@${aws_instance.c8g.public_ip}:~/arm-bench/
     EOT
   }
 
@@ -211,7 +211,7 @@ output "ssh_command" {
 }
 
 output "run_example" {
-  value = "ssh -i ~/.ssh/id_rsa ubuntu@${aws_instance.kernel_testing.public_ip} './simd-loops/build/${var.build_target}/bin/simd_loops -k 1 -n 10'"
+  value = "ssh -i ~/.ssh/id_rsa ubuntu@${aws_instance.kernel_testing.public_ip} './arm-bench/build/${var.build_target}/bin/simd_loops -k 1 -n 10'"
 }
 
 output "instance_id" {

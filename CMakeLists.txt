@@ -21,11 +21,15 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm")
 endif()
 
 # ── Paths ────────────────────────────────────────────────────────────
-# This CMake expects CPU-Kernel-Baseline to live alongside arm-bench:
+# This CMake expects to live alongside arm-bench:
 #   <repo>/arm-bench/                 (this dir)
-#   <repo>/CPU-Kernel-Baseline/ncnn/  (baseline sources)
+#   <repo>/ncnn/  (baseline sources)
 set(ARM_BENCH ${CMAKE_CURRENT_SOURCE_DIR})
-set(BASE_ROOT ${ARM_BENCH}/../CPU-Kernel-Baseline/ncnn)
+# BASE_ROOT can be overridden via -DBASE_ROOT=<path> (e.g. on a remote instance
+# where the baseline is rsynced to ~/ncnn instead of the local sibling layout).
+if(NOT DEFINED BASE_ROOT)
+    set(BASE_ROOT ${ARM_BENCH}/../ncnn)
+endif()
 
 if(NOT EXISTS ${BASE_ROOT}/framework/mat.cpp)
     message(FATAL_ERROR
@@ -165,6 +169,76 @@ add_baseline_test(conv1d   convolution1d_arm.cpp           convolution1d        
 add_baseline_test(convdw   convolutiondepthwise_arm.cpp    convolutiondepthwise convolutiondepthwise.cpp convolutiondepwise.cpp)
 add_baseline_test(deconv   deconvolution_arm.cpp           deconvolution        deconvolution.cpp        deconvolution.cpp)
 add_baseline_test(deconvdw deconvolutiondepthwise_arm.cpp  deconvolutiondepthwise deconvolutiondepthwise.cpp deconvolutiondepwise.cpp)
+
+# ── Perf binaries ────────────────────────────────────────────────────
+# Perf .cpp files define void perf_xxx() / void test_xxx() that invoke
+# run_X(...) only (no run_ref_X, no assertions). Generator emits a main
+# that calls each discovered function; the return value of run_X is
+# discarded. These binaries link the same kernel sources as the
+# corresponding test binaries, so timing measurement can be wrapped
+# around them later without re-plumbing the build.
+function(_ncnn_gen_perf_main perf_src generated_src)
+    file(READ ${perf_src} _content)
+    string(REGEX MATCHALL "void[ \t]+(perf|test)_[A-Za-z0-9_]+[ \t]*\\(" _raw "${_content}")
+    set(_calls "")
+    foreach(m IN LISTS _raw)
+        string(REGEX REPLACE "void[ \t]+((perf|test)_[A-Za-z0-9_]+)[ \t]*\\(" "\\1" _fn "${m}")
+        string(APPEND _calls "    ${_fn}();\n")
+    endforeach()
+    file(WRITE ${generated_src}
+"${_content}
+
+// ── Auto-generated main (by CMake) ─────────────────────────────────
+int main() {
+${_calls}    return 0;
+}
+")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${perf_src})
+endfunction()
+
+function(add_candidate_perf name candidate_src perf_src)
+    set(stem "perf_candidate_${name}")
+    set(generated "${CMAKE_BINARY_DIR}/generated/${stem}.cpp")
+    _ncnn_gen_perf_main(
+        ${ARM_BENCH}/perf/ncnn/candidate/${perf_src}
+        ${generated})
+    add_executable(${stem}
+        ${ARM_BENCH}/candidates_src/ncnn/${candidate_src}
+        ${generated}
+    )
+    target_include_directories(${stem} PRIVATE ${NCNN_TEST_INCLUDES})
+    target_link_libraries(${stem} PRIVATE ncnn_framework m)
+endfunction()
+
+function(add_baseline_perf name arm_src mapped_subdir mapped_src perf_src)
+    set(stem "perf_baseline_${name}")
+    set(generated "${CMAKE_BINARY_DIR}/generated/${stem}.cpp")
+    _ncnn_gen_perf_main(
+        ${ARM_BENCH}/perf/ncnn/baseline/${perf_src}
+        ${generated})
+    add_executable(${stem}
+        ${BASE_ROOT}/arm-heavy-optimized/conv/${arm_src}
+        ${BASE_ROOT}/mapped/${mapped_subdir}/${mapped_src}
+        ${generated}
+    )
+    target_include_directories(${stem} PRIVATE
+        ${NCNN_TEST_INCLUDES}
+        ${BASE_ROOT}/arm-heavy-optimized/conv
+    )
+    target_link_libraries(${stem} PRIVATE ncnn_framework m)
+endfunction()
+
+add_candidate_perf(conv       convolution.cpp          convolution.cpp)
+add_candidate_perf(conv1d     convolution1d.cpp        convolution1d.cpp)
+add_candidate_perf(convdw     convolutiondepwise.cpp   convolutiondepwise.cpp)
+add_candidate_perf(deconv     deconvolution.cpp        deconvolution.cpp)
+add_candidate_perf(deconvdw   deconvolutiondepwise.cpp deconvolutiondepwise.cpp)
+
+add_baseline_perf(conv     convolution_arm.cpp             convolution          convolution.cpp          convolution.cpp)
+add_baseline_perf(conv1d   convolution1d_arm.cpp           convolution1d        convolution1d.cpp        convolution1d.cpp)
+add_baseline_perf(convdw   convolutiondepthwise_arm.cpp    convolutiondepthwise convolutiondepthwise.cpp convolutiondepwise.cpp)
+add_baseline_perf(deconv   deconvolution_arm.cpp           deconvolution        deconvolution.cpp        deconvolution.cpp)
+add_baseline_perf(deconvdw deconvolutiondepthwise_arm.cpp  deconvolutiondepthwise deconvolutiondepthwise.cpp deconvolutiondepwise.cpp)
 
 # ── Convenience: run all tests ───────────────────────────────────────
 enable_testing()

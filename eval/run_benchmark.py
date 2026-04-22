@@ -1,5 +1,5 @@
 """
-eval/run_benchmark.py — Agentic benchmark CLI for simd-loops.
+eval/run_benchmark.py — Agentic benchmark CLI for arm-bench.
 
 Full end-to-end: provision (if needed) → run agentic LLM eval → score → (optionally) teardown.
 
@@ -33,7 +33,7 @@ RESULTS_DIR = REPO_ROOT / "results"
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Agentic LLM benchmark for simd-loops SIMD kernels and ncnn kernels"
+        description="Agentic LLM benchmark for arm-bench SIMD kernels and ncnn kernels"
     )
 
     # Mode selection

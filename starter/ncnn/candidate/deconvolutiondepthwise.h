@@ -140,7 +140,7 @@ inline int DeconvolutionDepthWise::forward(const Mat& bottom_blob, Mat& top_blob
 #endif // LAYER_DECONVOLUTIONDEPTHWISE_H
 
 // CANDIDATE_INJECT_START
-static ncnn::Mat run_ref_depthwise_deconv2d(int c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_ref_depthwise_deconv2d(int c, int in_h, int in_w,
                                              int kh, int kw, int stride_h, int stride_w,
                                              bool with_bias = false)
 {
@@ -154,7 +154,7 @@ static ncnn::Mat run_ref_depthwise_deconv2d(int c, int in_h, int in_w,
 }
 
 // Generic runner for DeconvolutionDepthWise (base)
-static ncnn::Mat run_depthwise_deconv2d(int c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_depthwise_deconv2d(int c, int in_h, int in_w,
                                          int kh, int kw, int stride_h, int stride_w,
                                          bool with_bias = false)
 {

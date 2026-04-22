@@ -1,5 +1,5 @@
 """
-eval/provision.py — Terraform lifecycle wrapper for simd-loops benchmark.
+eval/provision.py — Terraform lifecycle wrapper for arm-bench benchmark.
 
 Provisions an Arm EC2 instance (Graviton3/4), waits for it to be ready,
 rsyncs source, and optionally does an initial build. Returns an InstanceHandle
@@ -150,10 +150,10 @@ def provision(instance_type: str = "c7g.large", initial_build: str = "") -> Inst
     print(f"[provision] Instance ready at {host}, waiting for SSH...")
     _wait_for_ssh(handle)
 
-    print(f"[provision] Rsyncing source to {host}:~/simd-loops/...")
+    print(f"[provision] Rsyncing source to {host}:~/arm-bench/...")
     handle.rsync_to(
         str(REPO_ROOT),
-        "~/simd-loops",
+        "~/arm-bench",
         excludes=["build", ".git", "terraform", "generations", "results",
                   "__pycache__", "*.pyc"],
     )
@@ -163,7 +163,7 @@ def provision(instance_type: str = "c7g.large", initial_build: str = "") -> Inst
     return handle
 
 
-def provision_codebase(handle: InstanceHandle,codebase:str) -> None:
+def provision_codebase(instance_type: str = "c7g.large", initial_build: str = "", codebase: str = "") -> InstanceHandle:
     """
     Sync the codebase to the remote instance for cpu kernel codebase evaluation.
 
@@ -174,6 +174,51 @@ def provision_codebase(handle: InstanceHandle,codebase:str) -> None:
     Args:
         handle: An InstanceHandle already connected to the remote instance.
     """
+    is_c8g = "c8g" in instance_type
+    print(f"[provision] Provisioning {instance_type} via Terraform...")
+
+    if is_c8g:
+        # c8g has its own fixed resource block — target it directly
+        result = _tf("apply", "-auto-approve",
+                     "-target=aws_instance.c8g",
+                     "-target=null_resource.deploy_c8g")
+    else:
+        skip_build = initial_build == ""
+        vars = [
+            f"-var=instance_type={instance_type}",
+            f"-var=skip_initial_build={'true' if skip_build else 'false'}",
+        ]
+        if not skip_build:
+            vars.append(f"-var=build_target={initial_build}")
+        result = _tf("apply", "-auto-approve",
+             "-target=aws_instance.kernel_testing",
+             "-target=null_resource.deploy",
+             *vars)
+
+
+    if result.returncode != 0:
+        raise RuntimeError("terraform apply failed")
+
+    outputs = _tf_output()
+    if is_c8g:
+        host = outputs["c8g_public_ip"]["value"]
+        instance_id = outputs.get("c8g_instance_id", {}).get("value")
+    else:
+        host = outputs["instance_public_ip"]["value"]
+        instance_id = outputs.get("instance_id", {}).get("value")
+    key_file = outputs.get("ssh_key_path", {}).get("value", "~/.ssh/id_rsa")
+
+    handle = InstanceHandle(
+        host=host,
+        user="ubuntu",
+        key_file=key_file,
+        instance_type=instance_type,
+        instance_id=instance_id,
+    )
+
+    print(f"[provision] Instance ready at {host}, waiting for SSH...")
+    _wait_for_ssh(handle)
+
     # Look for ncnn/ in the CPU-Kernel-Baseline repo next to arm-bench
     codebase_dir = REPO_ROOT.parent / "CPU-Kernel-Baseline" / codebase
     if not codebase_dir.exists():
@@ -193,8 +238,9 @@ def provision_codebase(handle: InstanceHandle,codebase:str) -> None:
         f"~/{codebase}",
         excludes=["build", ".git", "__pycache__", "*.o", "*.d", "*.pyc"],
     )
+    _save_config(handle)
     print(f"[provision_codebase] {codebase} codebase synced.")
-
+    return handle
 
 def teardown():
     """Run terraform destroy to terminate the instance."""
@@ -313,7 +359,7 @@ if __name__ == "__main__":
         teardown()
     elif args.codebase:
         instance_type = ISA_INSTANCE_MAP.get(args.isa, args.instance) if args.isa else args.instance
-        handle = provision_codebase(instance_type, args.codebase)
+        handle = provision_codebase(instance_type, args.initial_build, args.codebase)
         print(f"\nInstance handle: {handle}")
     else:
         instance_type = ISA_INSTANCE_MAP.get(args.isa, args.instance) if args.isa else args.instance

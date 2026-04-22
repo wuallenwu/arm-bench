@@ -37,6 +37,15 @@ pip install litellm
 
 ### 2. Provision an instance
 
+For the first time to provision an instance, run
+```bash
+cd your-repo-dir/terraform
+```
+then run 
+```bash
+terraform init
+```
+
 ```bash
 python eval/provision.py --isa sve2
 # Runs terraform apply, waits for cloud-init, rsyncs source.

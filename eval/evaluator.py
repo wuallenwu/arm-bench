@@ -1,5 +1,5 @@
 """
-eval/evaluator.py — Agentic LLM evaluation orchestrator for simd-loops.
+eval/evaluator.py — Agentic LLM evaluation orchestrator for arm-bench.
 
 Runs an agent loop where the LLM iteratively uses compile/run/perf/disassemble
 tools over SSH, then scores the final submission against pre-collected baselines.

@@ -94,7 +94,7 @@ public:
 
 // BASELINE_INJECT_START
 // The ncnn Convolution1D treats the input as [w=length, h=channels] (2D mat)
-static ncnn::Mat run_ref_conv1d(int in_c, int out_c, int in_w, int kw,
+[[maybe_unused]] static ncnn::Mat run_ref_conv1d(int in_c, int out_c, int in_w, int kw,
                                  int stride_w, int pad_left, int dil_w = 1,
                                  bool with_bias = false)
 {
@@ -108,7 +108,7 @@ static ncnn::Mat run_ref_conv1d(int in_c, int out_c, int in_w, int kw,
 }
 
 // Generic runner for Convolution1D_arm
-static ncnn::Mat run_conv1d_arm(int in_c, int out_c, int in_w, int kw,
+[[maybe_unused]] static ncnn::Mat run_conv1d_arm(int in_c, int out_c, int in_w, int kw,
                                  int stride_w, int pad_left, int dil_w = 1,
                                  bool with_bias = false)
 {

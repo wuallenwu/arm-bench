@@ -1,5 +1,5 @@
 """
-eval/config.py — Configuration loader for the simd-loops benchmark.
+eval/config.py — Configuration loader for the arm-bench benchmark.
 
 Reads eval_config.json (or eval_config.json.example) and exposes helpers
 for loading problem metadata and baseline timings.
@@ -14,7 +14,7 @@ DATASET_PATH = REPO_ROOT / "dataset"
 PROBLEMS_JSON = DATASET_PATH / "problems.json"
 BASELINES_DIR = REPO_ROOT / "baselines"
 STARTER_PATH = REPO_ROOT / "starter"
-NCNN_PROBLEMS_JSON = STARTER_PATH / "problems.json"
+NCNN_PROBLEMS_JSON = STARTER_PATH / "ncnn" / "problems.json"
 NCNN_BASELINES_JSON = BASELINES_DIR / "ncnn.json"
 
 # ISA → instance tier mapping
@@ -204,43 +204,35 @@ def load_baselines(tier: str) -> dict:
 
 def load_ncnn_problems() -> dict:
     """
-    Load starter/problems.json and augment each entry with scalar_code (the
-    current candidate .cpp source) and struct_def (the header file) so that
-    the evaluator's build_ncnn_user_prompt can include them in the LLM prompt.
+    Load starter/ncnn/problems.json and augment each entry with:
+      - scalar_code: current candidates_src/ncnn/*.cpp (what the agent optimizes)
+      - struct_def:  starter/ncnn/candidate/*.h       (class + kernel decl)
+
+    Paths in problems.json are expected to be relative to the arm-bench repo root.
 
     Returns dict keyed by problem ID.
     """
     if not NCNN_PROBLEMS_JSON.exists():
         raise FileNotFoundError(
-            f"starter/problems.json not found at {NCNN_PROBLEMS_JSON}. "
-            f"Make sure arm-bench/starter/ is populated."
+            f"starter/ncnn/problems.json not found at {NCNN_PROBLEMS_JSON}. "
+            f"Make sure arm-bench/starter/ncnn/ is populated."
         )
     problems_raw = json.loads(NCNN_PROBLEMS_JSON.read_text())
     result = {}
-    ncnn_root = REPO_ROOT / "ncnn"  # local ncnn codebase (kernel-extraction/ncnn)
-    # Fall back to kernel-extraction/ncnn if ncnn/ doesn't exist in repo root
-    if not ncnn_root.exists():
-        ncnn_root = REPO_ROOT.parent / "kernel-extraction" / "ncnn"
 
     for meta in problems_raw:
         pid = meta["id"]
         entry = dict(meta)
 
-        # Load candidate source file (what the agent will optimize)
         candidate_rel = meta.get("candidate_source", "")
-        candidate_path = ncnn_root / "mapped" / Path(candidate_rel).name.replace(
-            ".cpp", ""
-        ) / Path(candidate_rel).name
-        # Try the direct path first
-        candidate_direct = ncnn_root / candidate_rel
-        if candidate_direct.exists():
-            entry["scalar_code"] = candidate_direct.read_text()
+        candidate_path = REPO_ROOT / candidate_rel
+        if candidate_path.exists():
+            entry["scalar_code"] = candidate_path.read_text()
         else:
             entry["scalar_code"] = f"// Source not found locally at {candidate_rel}"
 
-        # Load header file (struct_def for the prompt)
-        header_rel = candidate_rel.replace(".cpp", ".h")
-        header_path = ncnn_root / header_rel
+        header_rel = meta.get("starter_header", "")
+        header_path = REPO_ROOT / header_rel
         if header_path.exists():
             entry["struct_def"] = header_path.read_text()
         else:

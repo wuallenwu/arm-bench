@@ -105,7 +105,7 @@ public:
 #endif // LAYER_DECONVOLUTIONDEPTHWISE_ARM_H
 
 // BASELINE_INJECT_START
-static ncnn::Mat run_ref_depthwise_deconv2d(int c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_ref_depthwise_deconv2d(int c, int in_h, int in_w,
                                              int kh, int kw, int stride_h, int stride_w,
                                              bool with_bias = false)
 {
@@ -119,7 +119,7 @@ static ncnn::Mat run_ref_depthwise_deconv2d(int c, int in_h, int in_w,
 }
 
 // Generic runner for DeconvolutionDepthWise_arm
-static ncnn::Mat run_depthwise_deconv2d_arm(int c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_depthwise_deconv2d_arm(int c, int in_h, int in_w,
                                              int kh, int kw, int stride_h, int stride_w,
                                              bool with_bias = false)
 {

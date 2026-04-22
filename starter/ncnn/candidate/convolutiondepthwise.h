@@ -144,7 +144,7 @@ inline int ConvolutionDepthWise::forward(const Mat& bottom_blob, Mat& top_blob, 
 #endif // LAYER_CONVOLUTIONDEPTHWISE_H
 
 // CANDIDATE_INJECT_START
-static ncnn::Mat run_ref_depthwise_conv2d(int c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_ref_depthwise_conv2d(int c, int in_h, int in_w,
                                            int kh, int kw, int stride_h, int stride_w,
                                            int pad_top, int pad_left,
                                            int dil_h = 1, int dil_w = 1,
@@ -160,7 +160,7 @@ static ncnn::Mat run_ref_depthwise_conv2d(int c, int in_h, int in_w,
 }
 
 // Generic runner for ConvolutionDepthWise (base)
-static ncnn::Mat run_depthwise_conv2d(int c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_depthwise_conv2d(int c, int in_h, int in_w,
                                        int kh, int kw, int stride_h, int stride_w,
                                        int pad_top, int pad_left,
                                        int dil_h = 1, int dil_w = 1,

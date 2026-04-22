@@ -64,7 +64,7 @@ static NCNN_FORCEINLINE float activation_ss(float v, int activation_type, const 
     return v;
 }
 
-static ncnn::Layer* create_activation_layer(int activation_type, const ncnn::Mat& activation_params, const ncnn::Option& opt)
+[[maybe_unused]] static ncnn::Layer* create_activation_layer(int activation_type, const ncnn::Mat& activation_params, const ncnn::Option& opt)
 {
     ncnn::Layer* activation = 0;
 

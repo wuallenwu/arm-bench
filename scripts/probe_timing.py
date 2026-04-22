@@ -98,7 +98,7 @@ def run_on_instance(handle, cmd: str, timeout: int = 300):
     return rc, stdout, stderr
 
 
-def compile_at_size(handle, loop_num: str, target: str, size: int, remote_root: str = "~/simd-loops") -> bool:
+def compile_at_size(handle, loop_num: str, target: str, size: int, remote_root: str = "~/arm-bench") -> bool:
     """Incremental compile: warm-up then recompile just this loop at SIZE=size."""
     obj_dir = f"{remote_root}/build/{target}/_obj"
     loop_o = f"{obj_dir}/loops/loop_{loop_num}.o"
@@ -127,7 +127,7 @@ def compile_at_size(handle, loop_num: str, target: str, size: int, remote_root: 
     return rc == 0
 
 
-def time_loop(handle, loop_num: str, target: str, n: int, remote_root: str = "~/simd-loops") -> float | None:
+def time_loop(handle, loop_num: str, target: str, n: int, remote_root: str = "~/arm-bench") -> float | None:
     """Run n iterations of loop_num and return ms/iter, or None on failure."""
     binary = f"{remote_root}/build/{target}/bin/simd_loops"
     loop_decimal = int(loop_num)
@@ -178,7 +178,7 @@ def main():
 
     # Warm-up build
     print(f"Warm-up build of {target}...")
-    rc, out, _ = handle.run(f"cd ~/simd-loops && make {target} 2>&1", timeout=300)
+    rc, out, _ = handle.run(f"cd ~/arm-bench && make {target} 2>&1", timeout=300)
     if rc != 0:
         print(f"  Build FAILED:\n{out[:300]}")
         sys.exit(1)

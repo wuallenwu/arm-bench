@@ -143,7 +143,7 @@ inline int Convolution::forward(const Mat& bottom_blob, Mat& top_blob, const Opt
 #endif // LAYER_CONVOLUTION_H
 
 // CANDIDATE_INJECT_START
-static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
                                  int kh, int kw, int stride_h, int stride_w,
                                  int pad_top, int pad_left,
                                  int dil_h = 1, int dil_w = 1,
@@ -158,7 +158,7 @@ static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
     return ref_conv2d(in, weight, bias, out_c, kh, kw, stride_h, stride_w, pad_top, pad_left, dil_h, dil_w);
 }
 
-static ncnn::Mat run_conv2d(int in_c, int out_c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_conv2d(int in_c, int out_c, int in_h, int in_w,
                         int kh, int kw, int stride_h, int stride_w,
                         int pad_top, int pad_left,
                         int dil_h = 1, int dil_w = 1,

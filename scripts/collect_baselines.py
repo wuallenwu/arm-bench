@@ -42,7 +42,7 @@ DEFAULT_N = 10
 def build_target(handle: InstanceHandle, target: str, extra_flags: str = ""):
     """Run make <target> on the instance."""
     flags_arg = f"EXTRA_FLAGS='{extra_flags}'" if extra_flags else ""
-    cmd = f"cd ~/simd-loops && make {target} {flags_arg} 2>&1"
+    cmd = f"cd ~/arm-bench && make {target} {flags_arg} 2>&1"
     rc, output, _ = handle.run(cmd, timeout=180)
     if rc != 0:
         raise RuntimeError(f"make {target} failed:\n{output[:500]}")
@@ -66,7 +66,7 @@ def compile_loop_at_size(
 
     Returns the binary path on success, None on failure.
     """
-    remote_root = "~/simd-loops"
+    remote_root = "~/arm-bench"
     obj_dir = f"{remote_root}/build/{target}/_obj"
     loop_o = f"{obj_dir}/loops/loop_{loop_num}.o"
     lnk_o = f"{obj_dir}/_lnk/loop_{loop_num}.o"
@@ -154,7 +154,7 @@ def collect_baselines(
         }
     """
     tier = ISA_TIER.get(isa, "c7g")
-    remote_root = "~/simd-loops"
+    remote_root = "~/arm-bench"
 
     autovec_target = "autovec-sve2" if isa in ("sve2", "sme2") else "autovec-sve"
     ref_target = isa  # "sve", "sve2", or "sme2"

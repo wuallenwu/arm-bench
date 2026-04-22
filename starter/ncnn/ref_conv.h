@@ -5,7 +5,7 @@
 // don't need to pull in the test-side TestMat / test_utils.h.
 
 // 2-D convolution reference. Input in: 3D Mat (w, h, c).
-static ncnn::Mat ref_conv2d(const ncnn::Mat& in,
+[[maybe_unused]] static ncnn::Mat ref_conv2d(const ncnn::Mat& in,
                              const std::vector<float>& weight,
                              const std::vector<float>& bias,
                              int out_c, int kh, int kw,
@@ -42,7 +42,7 @@ static ncnn::Mat ref_conv2d(const ncnn::Mat& in,
 }
 
 // Depthwise 2-D convolution reference (group == channels)
-static ncnn::Mat ref_depthwise_conv2d(const ncnn::Mat& in,
+[[maybe_unused]] static ncnn::Mat ref_depthwise_conv2d(const ncnn::Mat& in,
                                        const std::vector<float>& weight,
                                        const std::vector<float>& bias,
                                        int kh, int kw,
@@ -77,7 +77,7 @@ static ncnn::Mat ref_depthwise_conv2d(const ncnn::Mat& in,
 
 // 2-D transposed convolution (deconvolution) reference
 // Weight layout: [out_c, in_c, kh, kw] (ncnn layout: per-outch block of in_c*kh*kw)
-static ncnn::Mat ref_deconv2d(const ncnn::Mat& in,
+[[maybe_unused]] static ncnn::Mat ref_deconv2d(const ncnn::Mat& in,
                                const std::vector<float>& weight,
                                const std::vector<float>& bias,
                                int in_c, int out_c,
@@ -120,7 +120,7 @@ static ncnn::Mat ref_deconv2d(const ncnn::Mat& in,
 }
 
 // Depthwise 2-D transposed convolution reference (group == channels)
-static ncnn::Mat ref_depthwise_deconv2d(const ncnn::Mat& in,
+[[maybe_unused]] static ncnn::Mat ref_depthwise_deconv2d(const ncnn::Mat& in,
                                          const std::vector<float>& weight,
                                          const std::vector<float>& bias,
                                          int kh, int kw,
@@ -158,7 +158,7 @@ static ncnn::Mat ref_depthwise_deconv2d(const ncnn::Mat& in,
 }
 
 // 1-D convolution reference. Input in: 2D Mat (w=seq_len, h=channels).
-static ncnn::Mat ref_conv1d(const ncnn::Mat& in,
+[[maybe_unused]] static ncnn::Mat ref_conv1d(const ncnn::Mat& in,
                              const std::vector<float>& weight,
                              const std::vector<float>& bias,
                              int out_c, int kw,

@@ -134,7 +134,7 @@ public:
 
 
 // BASELINE_INJECT_START
-static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
                                  int kh, int kw, int stride_h, int stride_w,
                                  int pad_top, int pad_left,
                                  int dil_h = 1, int dil_w = 1,
@@ -150,7 +150,7 @@ static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
 }
 
 // Generic runner for Convolution_arm
-static ncnn::Mat run_conv2d_arm(int in_c, int out_c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_conv2d_arm(int in_c, int out_c, int in_h, int in_w,
                                  int kh, int kw, int stride_h, int stride_w,
                                  int pad_top, int pad_left,
                                  int dil_h = 1, int dil_w = 1,

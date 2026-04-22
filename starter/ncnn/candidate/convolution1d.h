@@ -122,7 +122,7 @@ inline int Convolution1D::forward(const Mat& bottom_blob, Mat& top_blob, const O
 
 // CANDIDATE_INJECT_START
 // The ncnn Convolution1D treats the input as [w=length, h=channels] (2D mat)
-static ncnn::Mat run_ref_conv1d(int in_c, int out_c, int in_w, int kw,
+[[maybe_unused]] static ncnn::Mat run_ref_conv1d(int in_c, int out_c, int in_w, int kw,
                                  int stride_w, int pad_left, int dil_w = 1,
                                  bool with_bias = false)
 {
@@ -135,7 +135,7 @@ static ncnn::Mat run_ref_conv1d(int in_c, int out_c, int in_w, int kw,
     return ref_conv1d(in, weight, bias, out_c, kw, stride_w, pad_left, dil_w);
 }
 
-static ncnn::Mat run_conv1d(int in_c, int out_c, int in_w, int kw,
+[[maybe_unused]] static ncnn::Mat run_conv1d(int in_c, int out_c, int in_w, int kw,
                              int stride_w, int pad_left, int dil_w = 1,
                              bool with_bias = false)
 {

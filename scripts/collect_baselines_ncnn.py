@@ -71,8 +71,8 @@ _EXTRA_INCLUDES = {
 }
 
 REMOTE_NCNN_ROOT = "~/ncnn"
-REMOTE_STARTER_DIR = "~/simd-loops/starter"
-REMOTE_BUILD_DIR = "~/simd-loops/starter/build_baselines"
+REMOTE_STARTER_DIR = "~/arm-bench/starter"
+REMOTE_BUILD_DIR = "~/arm-bench/starter/build_baselines"
 REMOTE_CMAKE_BUILD = "~/ncnn/mapped/tests/build"
 
 

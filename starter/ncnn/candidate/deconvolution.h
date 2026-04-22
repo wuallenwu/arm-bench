@@ -135,7 +135,7 @@ inline int Deconvolution::forward(const Mat& bottom_blob, Mat& top_blob, const O
 
 // CANDIDATE_INJECT_START
 // Weight layout for deconvolution in ncnn: [in_c, out_c, kh, kw]
-static ncnn::Mat run_ref_deconv2d(int in_c, int out_c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_ref_deconv2d(int in_c, int out_c, int in_h, int in_w,
                                    int kh, int kw, int stride_h, int stride_w,
                                    bool with_bias = false)
 {
@@ -149,7 +149,7 @@ static ncnn::Mat run_ref_deconv2d(int in_c, int out_c, int in_h, int in_w,
 }
 
 // Generic runner for Deconvolution (base)
-static ncnn::Mat run_deconv2d(int in_c, int out_c, int in_h, int in_w,
+[[maybe_unused]] static ncnn::Mat run_deconv2d(int in_c, int out_c, int in_h, int in_w,
                                int kh, int kw, int stride_h, int stride_w,
                                bool with_bias = false)
 {
