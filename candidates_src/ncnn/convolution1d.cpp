@@ -1,7 +1,16 @@
+#include "starter/ncnn/candidate/convolution1d.h"
+
 #include "common/fused_activation.h"
-#include "framework/mat.h"
-#include "framework/option.h"
-static int convolution1d(const Mat& bottom_blob, Mat& top_blob, const Mat& weight_data, const Mat& bias_data, int kernel_w, int stride_w, int dilation_w, int activation_type, const Mat& activation_params, const Option& opt)
+
+#include <vector>
+
+namespace ncnn {
+
+int convolution1d_kernel(const Mat& bottom_blob, Mat& top_blob,
+                         const Mat& weight_data, const Mat& bias_data,
+                         int kernel_w, int stride_w, int dilation_w,
+                         int activation_type, const Mat& activation_params,
+                         const Option& opt)
 {
     const int h = bottom_blob.h;
 
@@ -48,3 +57,5 @@ static int convolution1d(const Mat& bottom_blob, Mat& top_blob, const Mat& weigh
 
     return 0;
 }
+
+} // namespace ncnn

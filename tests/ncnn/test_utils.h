@@ -10,6 +10,8 @@
 #include <string>
 #include <numeric>
 
+#include "starter/ncnn/ncnn_helpers.h"  // ncnn::Mat + read_mat (for expect_mat_near)
+
 // ─── Assertion macros ────────────────────────────────────────────────────────
 
 #define ASSERT_EQ(a, b)                                                        \
@@ -75,67 +77,36 @@ inline void print_summary(const char* suite) {
     printf("\n[%s]  %d / %d passed\n", suite, g_passed, total);
 }
 
-// ─── Lightweight Mat helper (float32 only) ───────────────────────────────────
-// Mirrors ncnn Mat semantics: shape stored as (w, h, c), flat row-major storage.
+// ─── Output comparison: ncnn::Mat (candidate/baseline) vs ncnn::Mat (reference) ─
 
-struct TestMat {
-    int w, h, c;          // spatial width, height, channels
-    std::vector<float> data;
-
-    TestMat() : w(0), h(0), c(0) {}
-    TestMat(int w_, int h_ = 1, int c_ = 1) : w(w_), h(h_), c(c_), data(w_ * h_ * c_, 0.f) {}
-    TestMat(int w_, int h_, int c_, const std::vector<float>& d) : w(w_), h(h_), c(c_), data(d) {}
-
-    float& at(int x, int y = 0, int ch = 0) { return data[ch * h * w + y * w + x]; }
-    float  at(int x, int y = 0, int ch = 0) const { return data[ch * h * w + y * w + x]; }
-
-    int total() const { return w * h * c; }
-
-    void fill(float v) { std::fill(data.begin(), data.end(), v); }
-    void fill_range() { for (int i = 0; i < total(); ++i) data[i] = (float)(i + 1) * 0.1f; }
-    void fill_ramp()  { for (int i = 0; i < total(); ++i) data[i] = (float)(i + 1); }
-
-    // Channel slice
-    float* channel_ptr(int ch) { return data.data() + ch * h * w; }
-    const float* channel_ptr(int ch) const { return data.data() + ch * h * w; }
-};
-
-// ─── Reference math helpers ──────────────────────────────────────────────────
-
-inline float sigmoid_f(float x) { return 1.f / (1.f + expf(-x)); }
-inline float tanh_f(float x)    { return tanhf(x); }
-inline float relu_f(float x)    { return x > 0.f ? x : 0.f; }
-inline float softplus_f(float x) { return logf(1.f + expf(x)); }
-inline float mish_f(float x)    { return x * tanh_f(softplus_f(x)); }
-inline float swish_f(float x)   { return x * sigmoid_f(x); }
-
-// Numerically-stable softmax over a flat array in-place
-inline void softmax_inplace(float* p, int n) {
-    float mx = *std::max_element(p, p + n);
-    float s = 0.f;
-    for (int i = 0; i < n; ++i) { p[i] = expf(p[i] - mx); s += p[i]; }
-    for (int i = 0; i < n; ++i) p[i] /= s;
+// Returns true if outputs match within tol. Bumps g_failed on mismatch.
+// Both arguments handled via read_mat (from ncnn_helpers.h), which supports
+// dims 1/2/3/4.
+static inline bool expect_mat_near(const ncnn::Mat& got, const ncnn::Mat& ref, float tol = 1e-3f)
+{
+    if (got.empty()) {
+        fprintf(stderr, "  FAIL  expect_mat_near: got is empty (kernel failed earlier)\n");
+        return false;
+    }
+    std::vector<float> got_flat, ref_flat;
+    read_mat(got, got_flat);
+    read_mat(ref, ref_flat);
+    if (got_flat.size() != ref_flat.size()) { //if there is a size mismatch, g_failed accumulate 2
+        fprintf(stderr, "  FAIL  expect_mat_near: size %zu != ref %zu  (got w=%d h=%d c=%d  ref w=%d h=%d c=%d)\n",
+                got_flat.size(), ref_flat.size(),
+                got.w, got.h, got.c, ref.w, ref.h, ref.c);
+        g_failed++;
+        return false;
+    }
+    const int before = g_failed;
+    ASSERT_VEC_NEAR(got_flat, ref_flat.data(), (int)got_flat.size(), tol);
+    return g_failed == before;
 }
 
-// int8 clamp
-inline int8_t float_to_int8(float v) {
-    int i = (int)roundf(v);
-    if (i >  127) i =  127;
-    if (i < -128) i = -128;
-    return (int8_t)i;
-}
-
-// Dot product
-inline float dot(const float* a, const float* b, int n) {
-    float s = 0.f;
-    for (int i = 0; i < n; ++i) s += a[i] * b[i];
-    return s;
-}
-
-// Generate repeatable weight data
-inline std::vector<float> make_weights(int n, float scale = 1.f) {
-    std::vector<float> w(n);
-    for (int i = 0; i < n; ++i)
-        w[i] = ((float)((i * 1234567 + 7654321) % 1000) / 1000.f - 0.5f) * scale;
-    return w;
-}
+// Fuse: call run_fn(args) + ref_fn(args) with identical arg list, then compare.
+#define EXPECT_MATCH(run_fn, ref_fn, ...)                                       \
+    do {                                                                        \
+        ncnn::Mat _got = run_fn(__VA_ARGS__);                                   \
+        ncnn::Mat _ref = ref_fn(__VA_ARGS__);                                   \
+        ASSERT_TRUE(expect_mat_near(_got, _ref));                               \
+    } while (0)

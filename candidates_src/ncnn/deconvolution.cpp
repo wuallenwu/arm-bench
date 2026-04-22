@@ -1,7 +1,18 @@
+#include "starter/ncnn/candidate/deconvolution.h"
+
 #include "common/fused_activation.h"
-#include "framework/mat.h"
-#include "framework/option.h"
-static int deconvolution(const Mat& bottom_blob, Mat& top_blob, const Mat& weight_data, const Mat& bias_data, int kernel_w, int kernel_h, int stride_w, int stride_h, int dilation_w, int dilation_h, int activation_type, const Mat& activation_params, const Option& opt)
+
+#include <vector>
+
+namespace ncnn {
+
+int deconvolution_kernel(const Mat& bottom_blob, Mat& top_blob,
+                         const Mat& weight_data, const Mat& bias_data,
+                         int kernel_w, int kernel_h,
+                         int stride_w, int stride_h,
+                         int dilation_w, int dilation_h,
+                         int activation_type, const Mat& activation_params,
+                         const Option& opt)
 {
     const int outw = top_blob.w;
     const int outch = top_blob.c;
@@ -79,3 +90,5 @@ static int deconvolution(const Mat& bottom_blob, Mat& top_blob, const Mat& weigh
 
     return 0;
 }
+
+} // namespace ncnn

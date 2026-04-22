@@ -1,9 +1,20 @@
 // ncnn_helpers.h — shared helpers for test files that link real ncnn kernels.
 #pragma once
-#include "../../ncnn/framework/mat.h"
-#include "../../ncnn/framework/option.h"
+#include "mat.h"
+#include "option.h"
 #include <cstring>
 #include <vector>
+
+// ── Deterministic test data generation ───────────────────────────────────────
+
+// Generate repeatable weight data (kept ncnn-layer-test-friendly; also used by ref_conv.h)
+static inline std::vector<float> make_weights(int n, float scale = 1.f)
+{
+    std::vector<float> w(n);
+    for (int i = 0; i < n; ++i)
+        w[i] = ((float)((i * 1234567 + 7654321) % 1000) / 1000.f - 0.5f) * scale;
+    return w;
+}
 
 // ── Mat construction ─────────────────────────────────────────────────────────
 
@@ -53,6 +64,35 @@ static inline ncnn::Mat make_mat_4d(int w_, int h_, int d_, int c_, const std::v
                 const float* src = flat.data() + cc * d_ * h_ * w_ + dd * h_ * w_ + hh * w_;
                 memcpy(dst, src, w_ * sizeof(float));
             }
+    return m;
+}
+
+// Create a 3-D ncnn::Mat with a deterministic ramp (c-major): value(i) = (i+1)*0.1f
+static inline ncnn::Mat make_mat_ramp(int w_, int h_, int c_)
+{
+    ncnn::Mat m;
+    m.create(w_, h_, c_, 4u, (ncnn::Allocator*)0);
+    int idx = 0;
+    for (int cc = 0; cc < c_; ++cc)
+        for (int hh = 0; hh < h_; ++hh) {
+            float* dst = m.channel(cc).row(hh);
+            for (int ww = 0; ww < w_; ++ww)
+                dst[ww] = (float)(++idx) * 0.1f;
+        }
+    return m;
+}
+
+// 2-D ramp (used by Convolution1D where layout is [w=seq_len, h=channels]).
+static inline ncnn::Mat make_mat_ramp_2d(int w_, int h_)
+{
+    ncnn::Mat m;
+    m.create(w_, h_, 4u, (ncnn::Allocator*)0);
+    int idx = 0;
+    for (int hh = 0; hh < h_; ++hh) {
+        float* dst = m.row(hh);
+        for (int ww = 0; ww < w_; ++ww)
+            dst[ww] = (float)(++idx) * 0.1f;
+    }
     return m;
 }
 

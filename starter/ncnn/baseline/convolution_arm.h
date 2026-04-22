@@ -1,11 +1,10 @@
-#include "test_utils.h"
 #include "ncnn_helpers.h"
 #include "ref_conv.h"
 
 #ifndef LAYER_CONVOLUTION_H
 #define LAYER_CONVOLUTION_H
 
-#include "../../framework/layer.h"
+#include "layer.h"
 
 namespace ncnn {
 
@@ -135,20 +134,34 @@ public:
 
 
 // BASELINE_INJECT_START
-// Generic runner for Convolution_arm
-static bool run_conv2d_arm(int in_c, int out_c, int in_h, int in_w,
-                             int kh, int kw, int stride_h, int stride_w,
-                             int pad_top, int pad_left,
-                             int dil_h = 1, int dil_w = 1,
-                             bool with_bias = false)
+static ncnn::Mat run_ref_conv2d(int in_c, int out_c, int in_h, int in_w,
+                                 int kh, int kw, int stride_h, int stride_w,
+                                 int pad_top, int pad_left,
+                                 int dil_h = 1, int dil_w = 1,
+                                 bool with_bias = false)
 {
     int wsize = out_c * in_c * kh * kw;
     std::vector<float> weight = make_weights(wsize, 0.5f);
     std::vector<float> bias;
     if (with_bias) { bias.resize(out_c); for (int i = 0; i < out_c; ++i) bias[i] = i * 0.1f; }
 
-    TestMat in(in_w, in_h, in_c); in.fill_range();
-    ncnn::Mat bottom = make_mat(in.w, in.h, in.c, in.data);
+    ncnn::Mat in = make_mat_ramp(in_w, in_h, in_c);
+    return ref_conv2d(in, weight, bias, out_c, kh, kw, stride_h, stride_w, pad_top, pad_left, dil_h, dil_w);
+}
+
+// Generic runner for Convolution_arm
+static ncnn::Mat run_conv2d_arm(int in_c, int out_c, int in_h, int in_w,
+                                 int kh, int kw, int stride_h, int stride_w,
+                                 int pad_top, int pad_left,
+                                 int dil_h = 1, int dil_w = 1,
+                                 bool with_bias = false)
+{
+    int wsize = out_c * in_c * kh * kw;
+    std::vector<float> weight = make_weights(wsize, 0.5f);
+    std::vector<float> bias;
+    if (with_bias) { bias.resize(out_c); for (int i = 0; i < out_c; ++i) bias[i] = i * 0.1f; }
+
+    ncnn::Mat bottom = make_mat_ramp(in_w, in_h, in_c);
     ncnn::Mat top;
 
     ncnn::Convolution_arm conv;
@@ -170,15 +183,10 @@ static bool run_conv2d_arm(int in_c, int out_c, int in_h, int in_w,
     ncnn::Option opt = make_opt();
     if (conv.create_pipeline(opt) != 0) {
         fprintf(stderr, "  Convolution_arm::create_pipeline failed\n");
-        g_failed++; return false;
+        return ncnn::Mat();
     }
     int ret = conv.forward(bottom, top, opt);
-    if (ret != 0) { fprintf(stderr, "  Convolution_arm::forward failed %d\n", ret); g_failed++; return false; }
-
-    TestMat ref = ref_conv2d(in, weight, bias, out_c, kh, kw, stride_h, stride_w, pad_top, pad_left, dil_h, dil_w);
-    std::vector<float> got; read_mat(top, got);
-    int before = g_failed;
-    ASSERT_VEC_NEAR(got, ref.data.data(), ref.total(), 1e-3f);
-    return g_failed == before;
+    if (ret != 0) { fprintf(stderr, "  Convolution_arm::forward failed %d\n", ret); return ncnn::Mat(); }
+    return top;
 }
 // BASELINE_INJECT_END

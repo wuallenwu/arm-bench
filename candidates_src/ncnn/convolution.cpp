@@ -1,8 +1,18 @@
-#include "common/fused_activation.h"
-#include "framework/mat.h"
-#include "framework/option.h"
+#include "starter/ncnn/candidate/convolution.h"
 
-static int convolution(const Mat& bottom_blob, Mat& top_blob, const Mat& weight_data, const Mat& bias_data, int kernel_w, int kernel_h, int stride_w, int stride_h, int dilation_w, int dilation_h, int activation_type, const Mat& activation_params, const Option& opt)
+#include "common/fused_activation.h"
+
+#include <vector>
+
+namespace ncnn {
+
+int convolution_kernel(const Mat& bottom_blob, Mat& top_blob,
+                       const Mat& weight_data, const Mat& bias_data,
+                       int kernel_w, int kernel_h,
+                       int stride_w, int stride_h,
+                       int dilation_w, int dilation_h,
+                       int activation_type, const Mat& activation_params,
+                       const Option& opt)
 {
     const int w = bottom_blob.w;
     const int inch = bottom_blob.c;
@@ -55,11 +65,11 @@ static int convolution(const Mat& bottom_blob, Mat& top_blob, const Mat& weight_
                     const Mat m = bottom_blob.channel(q);
                     const float* sptr = m.row(i * stride_h) + j * stride_w;
 
-                    for (int k = 0; k < maxk; k++) // 29.23
+                    for (int k = 0; k < maxk; k++)
                     {
-                        float val = sptr[space_ofs[k]]; // 20.72
+                        float val = sptr[space_ofs[k]];
                         float wt = kptr[k];
-                        sum += val * wt; // 41.45
+                        sum += val * wt;
                     }
 
                     kptr += maxk;
@@ -74,3 +84,5 @@ static int convolution(const Mat& bottom_blob, Mat& top_blob, const Mat& weight_
 
     return 0;
 }
+
+} // namespace ncnn
