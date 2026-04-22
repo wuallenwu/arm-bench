@@ -14,8 +14,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import litellm
-
+from eval.agent import BaseAgent, LiteLLMAgent
 from eval.config import DATASET_PATH, load_problems, ISA_INSTANCE_DESC
 from eval.provision import InstanceHandle, get_or_provision
 from eval.tools import SIMDTools, EvalResult
@@ -271,10 +270,11 @@ Write an optimized {isa.upper()} implementation. Start by calling compile() with
 def run_agentic_eval(
     problem_id: str,
     isa: str,
-    model: str,
+    model: str | None,
     handle: InstanceHandle,
     max_turns: int = 20,
     verbose: bool = True,
+    agent: BaseAgent | None = None,
 ) -> EvalResult:
     """
     Run one agentic evaluation session.
@@ -285,14 +285,21 @@ def run_agentic_eval(
     Args:
         problem_id: e.g. "loop_001"
         isa: "neon", "sve", "sve2", or "sme2"
-        model: LiteLLM model string, e.g. "anthropic/claude-opus-4-6"
+        model: LiteLLM model string, e.g. "anthropic/claude-opus-4-6".
+               Ignored when `agent` is provided explicitly.
         handle: SSH handle to the provisioned instance
         max_turns: Maximum agent turns before forced submit
         verbose: Print conversation turns
+        agent: Optional pre-built BaseAgent. If None, a LiteLLMAgent is
+               created from `model`.
 
     Returns:
         EvalResult from the submit() call (or a failed result if max_turns hit)
     """
+    if agent is None:
+        if model is None:
+            raise ValueError("Either `agent` or `model` must be provided")
+        agent = LiteLLMAgent(model)
     problems = load_problems()
     if problem_id not in problems:
         raise KeyError(f"Problem {problem_id!r} not found in problems.json")
@@ -310,9 +317,10 @@ def run_agentic_eval(
         {"role": "user", "content": user_msg},
     ]
 
+    model_name = model or getattr(agent, "model", type(agent).__name__)
     if verbose:
         print(f"\n{'='*60}")
-        print(f"Problem: {problem_id} | ISA: {isa} | Model: {model}")
+        print(f"Problem: {problem_id} | ISA: {isa} | Model: {model_name}")
         print(f"{'='*60}")
 
     run_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -341,39 +349,19 @@ def run_agentic_eval(
             })
 
         compressed = _compress_history(messages, code_versions=code_versions)
-        for _retry in range(6):
-            try:
-                response = litellm.completion(
-                    model=model,
-                    messages=compressed,
-                    tools=schemas,
-                    tool_choice="auto",
-                    temperature=0.2,
-                )
-                break
-            except litellm.RateLimitError as e:
-                wait = 30 * (2 ** _retry)
-                if verbose:
-                    print(f"  [rate limit] sleeping {wait}s: {e}")
-                time.sleep(wait)
-        else:
-            raise RuntimeError("Exceeded retry budget for rate limit")
-        msg = response.choices[0].message
-        messages.append(msg.model_dump())
+        reasoning_text, tool_calls = agent.step(compressed, schemas)
+        messages.append(agent.to_assistant_message(reasoning_text, tool_calls))
 
         # No tool calls → agent is done (or confused)
-        if not msg.tool_calls:
+        if not tool_calls:
             if verbose:
-                print(f"  Agent: {msg.content}")
+                print(f"  Agent: {reasoning_text}")
             break
 
-        # Capture the agent's reasoning text (content before the tool calls)
-        reasoning_text = msg.content or ""
-
         # Execute each tool call
-        for tc in msg.tool_calls:
-            fn_name = tc.function.name
-            fn_args = json.loads(tc.function.arguments)
+        for tc in tool_calls:
+            fn_name = tc.name
+            fn_args = tc.arguments
 
             if verbose:
                 arg_preview = {k: (v[:80] + "..." if isinstance(v, str) and len(v) > 80 else v)

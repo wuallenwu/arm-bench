@@ -162,7 +162,6 @@ def main():
         print("\n[teardown] Destroying instance...")
         teardown()
     else:
-        from eval.provision import get_running_instance
         handle = get_running_instance(args.isa)
         if handle and handle.host:
             print(

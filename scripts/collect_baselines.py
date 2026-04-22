@@ -283,9 +283,11 @@ def main():
             return
         problem_ids = [pid]
     else:
+        # SVE2 is a superset of SVE — collect baselines for sve/sve2-tagged problems on c8g
+        valid_targets = {"sve", "sve2"} if args.isa == "sve2" else {args.isa}
         problem_ids = [
             pid for pid, p in problems.items()
-            if p.get("isa_target") == args.isa
+            if p.get("isa_target") in valid_targets
         ]
         print(f"Collecting baselines for {len(problem_ids)} problems (ISA: {args.isa})")
 
