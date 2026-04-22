@@ -36,6 +36,16 @@ static void NOINLINE update(uint32_t *histogram, uint32_t *records,
     histogram[entry] += 1;
   }
 }
+
+static void inner_loop_102(struct loop_102_data *restrict input) {
+  uint32_t *histogram = input->histogram;
+  uint64_t histogram_size = input->histogram_size;
+  uint32_t *records = input->records;
+  int64_t num_records = input->num_records;
+
+  memset(histogram, 0, histogram_size);
+  update(histogram, records, num_records);
+}
 """
 
 # Prompt template (used by generate_samples.py and run_benchmark.py)

@@ -29,14 +29,13 @@ struct loop_123_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-// Implementation
+static inline void swap_32(int32_t *a, int32_t *b) { int32_t t = *a; *a = *b; *b = t; }
 
 static void bitonic_merge(uint32_t n, int32_t *restrict a, int d) {
   if (n <= 1) return;
   uint32_t k = n / 2;
-  for (uint32_t i = 0; i < k; i++) {
+  for (uint32_t i = 0; i < k; i++)
     if (d == (int)(a[i] > a[i + k])) swap_32(&a[i], &a[i + k]);
-  }
   bitonic_merge(k, a, d);
   bitonic_merge(k, a + k, d);
 }
@@ -50,11 +49,13 @@ static void bitonic_sort(uint32_t n, int32_t *restrict a, int d) {
 }
 
 static void NOINLINE do_sort(struct loop_123_data *restrict input) {
-  uint32_t n = input->n;
-  int32_t *data = input->data;
+  bitonic_sort(input->n, input->data, 1);
+}
 
-  bitonic_sort(n, data, 1);
-} //Implementation
+static void inner_loop_123(struct loop_123_data *restrict input) {
+  fill_int32(input->data, input->n);
+  do_sort(input);
+}
 """
 
 # Prompt template (used by generate_samples.py and run_benchmark.py)

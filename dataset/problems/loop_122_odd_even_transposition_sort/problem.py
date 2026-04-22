@@ -27,27 +27,27 @@ struct loop_122_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
+static inline void swap_32(int32_t *a, int32_t *b) { int32_t t = *a; *a = *b; *b = t; }
+
 static void NOINLINE do_sort(struct loop_122_data *restrict input) {
   uint32_t n = input->n;
   int32_t *data = input->data;
 
-  uint32_t i;
   bool sorted;
   do {
     sorted = true;
-    for (i = 1; i < n; i += 2) {
-      if (data[i - 1] > data[i]) {
-        swap_32(&data[i - 1], &data[i]);
-        sorted = false;
-      }
+    for (uint32_t i = 1; i < n; i += 2) {
+      if (data[i - 1] > data[i]) { swap_32(&data[i - 1], &data[i]); sorted = false; }
     }
-    for (i = 1; i < n - 1; i += 2) {
-      if (data[i + 1] < data[i]) {
-        swap_32(&data[i + 1], &data[i]);
-        sorted = false;
-      }
+    for (uint32_t i = 1; i < n - 1; i += 2) {
+      if (data[i] > data[i + 1]) { swap_32(&data[i], &data[i + 1]); sorted = false; }
     }
   } while (!sorted);
+}
+
+static void inner_loop_122(struct loop_122_data *restrict input) {
+  fill_int32(input->data, input->n);
+  do_sort(input);
 }
 """
 

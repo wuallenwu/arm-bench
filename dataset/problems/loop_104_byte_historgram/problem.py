@@ -29,8 +29,18 @@ struct loop_104_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-void NOINLINE update(uint32_t *restrict histogram, uint8_t *data, int n) {
+static void NOINLINE update(uint32_t *restrict histogram, uint8_t *data, int n) {
   for (int i = 0; i < n; i++) histogram[data[i]] += 1;
+}
+
+static void inner_loop_104(struct loop_104_data *restrict input) {
+  uint32_t *histogram = input->histogram;
+  uint64_t histogram_size = input->histogram_size;
+  uint8_t *data = input->data;
+  int n = input->n;
+
+  memset(histogram, 0, histogram_size);
+  update(histogram, data, n);
 }
 """
 

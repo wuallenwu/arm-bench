@@ -30,13 +30,35 @@ struct loop_124_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-// Implementation
 static void NOINLINE do_sort(struct loop_124_data *restrict input) {
   uint32_t n = input->n;
   int32_t *data = input->data;
   int32_t *temp = input->temp;
 
-  com_sort_radix(n, data, temp);
+  /* Radix sort (LSD, 8-bit stride) */
+  int32_t min = data[0], max = data[0];
+  for (uint32_t i = 1; i < n; i++) {
+    if (data[i] < min) min = data[i];
+    if (data[i] > max) max = data[i];
+  }
+  for (uint32_t i = 0; i < n; i++) data[i] -= min;
+
+  uint32_t lim = (uint32_t)(max - min);
+  for (int off = 0; lim != 0; off += 8, lim >>= 8) {
+    uint32_t count[256] = {0};
+    for (uint32_t i = 0; i < n; i++) count[((uint32_t)data[i] >> off) & 0xff]++;
+    uint32_t c = count[0];
+    for (int j = 1; j < 256; j++) { count[j] += c; c = count[j]; }
+    for (uint32_t i = n; i > 0; i--)
+      temp[--count[((uint32_t)data[i-1] >> off) & 0xff]] = data[i-1];
+    for (uint32_t i = 0; i < n; i++) data[i] = temp[i];
+  }
+  for (uint32_t i = 0; i < n; i++) data[i] += min;
+}
+
+static void inner_loop_124(struct loop_124_data *restrict input) {
+  fill_int32(input->data, input->n);
+  do_sort(input);
 }
 """
 

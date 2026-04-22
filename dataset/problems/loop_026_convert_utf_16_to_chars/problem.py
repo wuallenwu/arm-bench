@@ -37,10 +37,20 @@ static void NOINLINE convert_utf16_to_bytes(uint16_t *restrict a,
     uint32_t second = table2[first];
     second += raw & 0xf;
     uint32_t result = table3[second];
-    if (result >= BAD_VALUE) {  // very unlikely
-      break;
-    }
+    if (result >= BAD_VALUE) break;
     b[i] = result;
+  }
+}
+
+static void inner_loop_026(struct loop_026_data *restrict data) {
+  uint16_t *p = data->p;
+  uint8_t *d = data->d;
+  uint16_t *lmt = data->lmt;
+  while (p < lmt) {
+    uint16_t length = p[0];
+    convert_utf16_to_bytes(p, d, length);
+    p += length;
+    d += length;
   }
 }
 """

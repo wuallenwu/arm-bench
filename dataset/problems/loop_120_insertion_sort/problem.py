@@ -27,12 +27,23 @@ struct loop_120_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-// Inner loop
 static void NOINLINE do_sort(struct loop_120_data *restrict input) {
   uint32_t n = input->n;
   int32_t *data = input->data;
 
-  com_sort_insertion(n, data);
+  /* Insertion sort */
+  for (uint32_t i = 1; i < n; i++) {
+    int32_t tmp = data[i];
+    uint32_t j;
+    for (j = i; j > 0 && data[j - 1] > tmp; j--)
+      data[j] = data[j - 1];
+    data[j] = tmp;
+  }
+}
+
+static void inner_loop_120(struct loop_120_data *restrict input) {
+  fill_int32(input->data, input->n);  /* re-fill with random data each iter */
+  do_sort(input);
 }
 """
 

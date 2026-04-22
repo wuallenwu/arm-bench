@@ -28,30 +28,39 @@ struct loop_121_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-|| defined(HAVE_SVE_INTRINSICS) || defined(__ARM_FEATURE_SVE)
+static inline void swap_32(int32_t *a, int32_t *b) { int32_t t = *a; *a = *b; *b = t; }
+
 static inline uint32_t find_pivot(uint32_t n, const int32_t *restrict data) {
-  struct tuple_32 {
-    uint32_t idx;
-    int32_t val;
-  } t, candidates[3];
+  uint32_t i0 = 0, i1 = n - 1, i2 = n / 2;
+  /* Median-of-three */
+  if (data[i0] > data[i1]) swap_32((int32_t*)&data[i0], (int32_t*)&data[i1]);
+  if (data[i0] > data[i2]) swap_32((int32_t*)&data[i0], (int32_t*)&data[i2]);
+  if (data[i1] > data[i2]) swap_32((int32_t*)&data[i1], (int32_t*)&data[i2]);
+  return i1;
+}
 
-  candidates[0].idx = 0;
-  candidates[1].idx = n - 1;
-  candidates[2].idx = n / 2;
-
-  candidates[0].val = data[candidates[0].idx];
-  candidates[1].val = data[candidates[1].idx];
-  candidates[2].val = data[candidates[2].idx];
-
-  int i, j;
-  for (i = 1; i < 3; i++) {
-    t = candidates[i];
-    for (j = i - 1; j >= 0 && candidates[j].val > t.val; j--)
-      candidates[j + 1] = candidates[j];
-    candidates[j + 1] = t;
+static void quicksort(uint32_t n, int32_t *restrict data, uint32_t threshold) {
+  if (n <= threshold) return;
+  int32_t v = data[find_pivot(n, data)];
+  uint32_t i = 0, j = n - 1;
+  while (1) {
+    while (data[i] < v) i++;
+    while (data[j] > v) j--;
+    if (i >= j) break;
+    swap_32(&data[i], &data[j]);
+    i++; j--;
   }
+  quicksort(i, data, threshold);
+  quicksort(n - i, data + i, threshold);
+}
 
-  return candidates[1].idx;
+static void NOINLINE do_sort(struct loop_121_data *input) {
+  quicksort(input->n, input->data, 1);
+}
+
+static void inner_loop_121(struct loop_121_data *input) {
+  fill_int32(input->data, input->n);
+  do_sort(input);
 }
 """
 

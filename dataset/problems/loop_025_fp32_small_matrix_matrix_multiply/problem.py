@@ -31,7 +31,6 @@ SCALAR_CODE = r"""
 static void NOINLINE matrix_multiply_8x8(float *restrict a, float *restrict b,
                                          float *restrict c) {
   memset(c, 0, sizeof(float) * 8 * 8);
-
   for (int row = 0; row < 8; row++) {
     for (int col = 0; col < 8; col++) {
       for (int i = 0; i < 8; i++) {
@@ -39,6 +38,10 @@ static void NOINLINE matrix_multiply_8x8(float *restrict a, float *restrict b,
       }
     }
   }
+}
+
+static void inner_loop_025(struct loop_025_data *restrict data) {
+  matrix_multiply_8x8(data->a, data->b, data->c);
 }
 """
 

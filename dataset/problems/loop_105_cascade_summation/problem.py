@@ -29,26 +29,26 @@ struct loop_105_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-|| defined(HAVE_SVE_INTRINSICS) || defined(HAVE_SME_INTRINSICS) ||\
-          defined(__ARM_FEATURE_SVE2) || defined(__ARM_FEATURE_SME) || defined(__ARM_FEATURE_SVE) || defined(__ARM_NEON)
-static float cascade_summation_16(float *restrict a)
-LOOP_ATTR
-{
-  float t0 = a[0] + a[1];
-  float t1 = a[2] + a[3];
-  float t2 = a[4] + a[5];
-  float t3 = a[6] + a[7];
-  float t4 = a[8] + a[9];
-  float t5 = a[10] + a[11];
-  float t6 = a[12] + a[13];
-  float t7 = a[14] + a[15];
-  float t10 = t0 + t1;
-  float t11 = t2 + t3;
-  float t12 = t4 + t5;
-  float t13 = t6 + t7;
-  float t100 = t10 + t11;
-  float t101 = t12 + t13;
-  return t100 + t101;
+static float cascade_summation_16(float *restrict a) {
+  float t0 = a[0] + a[1];   float t1 = a[2] + a[3];
+  float t2 = a[4] + a[5];   float t3 = a[6] + a[7];
+  float t4 = a[8] + a[9];   float t5 = a[10] + a[11];
+  float t6 = a[12] + a[13]; float t7 = a[14] + a[15];
+  float t10 = t0 + t1;  float t11 = t2 + t3;
+  float t12 = t4 + t5;  float t13 = t6 + t7;
+  return (t10 + t11) + (t12 + t13);
+}
+
+static float NOINLINE cascade_summation(float *restrict a, float *restrict b,
+                                        int n) {
+  if (n == 16) return cascade_summation_16(a);
+  int half = n / 2;
+  for (int i = 0; i < half; i++) b[i] = a[2 * i] + a[2 * i + 1];
+  return cascade_summation(b, b + half, half);
+}
+
+static void inner_loop_105(struct loop_105_data *restrict input) {
+  input->res = cascade_summation(input->a, input->b, input->n);
 }
 """
 

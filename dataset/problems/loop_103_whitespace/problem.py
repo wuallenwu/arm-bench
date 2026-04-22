@@ -28,11 +28,26 @@ struct loop_103_data {
 
 # Scalar reference implementation — the LLM's task is to optimize this
 SCALAR_CODE = r"""
-static uint8_t *NOINLINE skip_whitespace(uint8_t *p, uint8_t *end) {
-  while (p != end && (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t')) {
+static void inner_loop_103(struct loop_103_data *restrict input) {
+  uint8_t *p = input->p;
+  uint8_t *end = input->end;
+  int count = 0;
+
+  /* Skip leading whitespace */
+  while (p != end && (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t'))
     p++;
+
+  while (p != end) {
+    count++;
+    /* Skip word (non-whitespace characters) */
+    while (p != end && *p != ' ' && *p != '\n' && *p != '\r' && *p != '\t')
+      p++;
+    /* Skip whitespace */
+    while (p != end && (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t'))
+      p++;
   }
-  return p;
+
+  input->checksum = count;  /* number of whitespace-delimited words */
 }
 """
 
