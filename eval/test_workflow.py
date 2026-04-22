@@ -161,8 +161,8 @@ def run_smoke_test(problem_id: str, isa: str, teardown: bool):
     print()
 
     # 3. Run
-    print("[3/5] run(n=50)...")
-    rr = tools.run(n=50)
+    print("[3/5] run(n=10)...")
+    rr = tools.run(n=10)
     print(f"      correct={rr.correct}  runtime_ms={rr.runtime_ms}")
     if not rr.correct:
         print(f"      output: {rr.output}")
@@ -170,8 +170,8 @@ def run_smoke_test(problem_id: str, isa: str, teardown: bool):
     print()
 
     # 4. Perf
-    print("[4/5] perf(n=50)...")
-    pr = tools.perf(n=50)
+    print("[4/5] perf(n=10)...")
+    pr = tools.perf(n=10)
     print(f"      cycles={pr.cycles}  instructions={pr.instructions}  ipc={pr.ipc}  cache_misses/iter={pr.cache_misses_per_iter}  task_clock_ms={pr.task_clock_ms}")
     print()
 

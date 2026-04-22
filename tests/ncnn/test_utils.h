@@ -79,10 +79,18 @@ inline void print_summary(const char* suite) {
 
 // ─── Output comparison: ncnn::Mat (candidate/baseline) vs ncnn::Mat (reference) ─
 
-// Returns true if outputs match within tol. Bumps g_failed on mismatch.
+// Returns true if outputs match within tolerance. Bumps g_failed on mismatch.
 // Both arguments handled via read_mat (from ncnn_helpers.h), which supports
 // dims 1/2/3/4.
-static inline bool expect_mat_near(const ncnn::Mat& got, const ncnn::Mat& ref, float tol = 1e-3f)
+//
+// Hybrid tolerance: |got − ref| ≤ abs_tol + rel_tol × |ref|
+// - abs_tol catches small-magnitude drift (near-zero outputs).
+// - rel_tol covers parallel-reduction FP rounding vs scalar ref (grows with sum depth).
+// Defaults (1e-3 / 1e-3) cover sum depths up to ~10⁴ at ramp-scale inputs; if a
+// given test still trips on accumulation-order drift, bump rel_tol at the call
+// site or raise the default here.
+static inline bool expect_mat_near(const ncnn::Mat& got, const ncnn::Mat& ref,
+                                   float abs_tol = 1e-3f, float rel_tol = 1e-3f)
 {
     if (got.empty()) {
         fprintf(stderr, "  FAIL  expect_mat_near: got is empty (kernel failed earlier)\n");
@@ -91,16 +99,25 @@ static inline bool expect_mat_near(const ncnn::Mat& got, const ncnn::Mat& ref, f
     std::vector<float> got_flat, ref_flat;
     read_mat(got, got_flat);
     read_mat(ref, ref_flat);
-    if (got_flat.size() != ref_flat.size()) { //if there is a size mismatch, g_failed accumulate 2
+    if (got_flat.size() != ref_flat.size()) {
         fprintf(stderr, "  FAIL  expect_mat_near: size %zu != ref %zu  (got w=%d h=%d c=%d  ref w=%d h=%d c=%d)\n",
                 got_flat.size(), ref_flat.size(),
                 got.w, got.h, got.c, ref.w, ref.h, ref.c);
         g_failed++;
         return false;
     }
-    const int before = g_failed;
-    ASSERT_VEC_NEAR(got_flat, ref_flat.data(), (int)got_flat.size(), tol);
-    return g_failed == before;
+    const int n = (int)got_flat.size();
+    for (int i = 0; i < n; ++i) {
+        float g = got_flat[i], r = ref_flat[i];
+        float tol = abs_tol + rel_tol * fabsf(r);
+        if (fabsf(g - r) > tol) {
+            fprintf(stderr, "  FAIL  expect_mat_near: [%d] got %.6f  ref %.6f  (|err|=%.6g > tol=%.6g)\n",
+                    i, g, r, fabsf(g - r), tol);
+            g_failed++;
+            return false;
+        }
+    }
+    return true;
 }
 
 // Fuse: call run_fn(args) + ref_fn(args) with identical arg list, then compare.

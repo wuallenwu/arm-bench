@@ -1227,7 +1227,7 @@ class NCNNTools:
         runtime_ms = None
         m = re.search(r"TIME_NS=(\d+)", stdout)
         if m:
-            runtime_ms = round(int(m.group(1)) / 1e6, 3)
+            runtime_ms = round(int(m.group(1)) / 1e6 / n, 3)
 
         # Extract summary line from last output
         output_clean = re.sub(r"TIME_NS=\d+", "", stdout).strip()
@@ -1359,26 +1359,29 @@ class NCNNTools:
         if rr_perf.runtime_ms is not None:
             runtime_ms = round(rr_perf.runtime_ms / 10, 4)  # ms per invocation
 
-        # Load baselines
+        # Load baselines (populated by scripts/collect_baselines_ncnn.py)
         from eval.config import load_ncnn_baselines
         baselines = load_ncnn_baselines()
         baseline = baselines.get(self.problem_id, {})
-        scalar_ms = baseline.get("scalar_ms")    # C base (ncnn::Convolution)
-        autovec_ms = baseline.get("autovec_ms")   # ARM optimized (ncnn::Convolution_arm)
-        ref_ms = baseline.get("ref_ms")
+        candidate_ms = baseline.get("candidate_ms")  # scalar C kernel (starter candidates_src)
+        baseline_ms  = baseline.get("baseline_ms")   # ARM-heavy-optimized reference
+        ref_ms       = baseline.get("ref_ms")
 
-        speedup_vs_scalar = None
+        # EvalResult field names are shared with SIMDTools for JSON-schema stability:
+        #   speedup_vs_scalar  ← candidate (scalar C) side for ncnn
+        #   speedup_vs_autovec ← baseline (ARM-optimized) side for ncnn
+        speedup_vs_scalar  = None
         speedup_vs_autovec = None
-        speedup_vs_ref = None
+        speedup_vs_ref     = None
         level = 1  # correct
 
-        if runtime_ms and scalar_ms:
-            speedup_vs_scalar = round(scalar_ms / runtime_ms, 2)
+        if runtime_ms and candidate_ms:
+            speedup_vs_scalar = round(candidate_ms / runtime_ms, 2)
             if speedup_vs_scalar > 1.0:
                 level = 2
 
-        if runtime_ms and autovec_ms:
-            speedup_vs_autovec = round(autovec_ms / runtime_ms, 2)
+        if runtime_ms and baseline_ms:
+            speedup_vs_autovec = round(baseline_ms / runtime_ms, 2)
             if level >= 2 and speedup_vs_autovec > 1.0:
                 level = 3  # beats ARM baseline
 
