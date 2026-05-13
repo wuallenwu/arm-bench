@@ -14,11 +14,13 @@ add_compile_options(-Wall -Wextra -O2)
 
 find_package(OpenMP REQUIRED)
 
-# ARM NEON / FP16 / dotprod flags apply only when the target is aarch64.
-# On x86 the kernels still compile via the scalar fallback branches.
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm")
-    add_compile_options(-march=armv8.2-a+fp16+dotprod)
-endif()
+# NCNNTools has already set -DCMAKE_CXX_FLAGS=-march=armv8-a+fp16+dotprod for the whole project. So no need to add this again
+
+# # ARM NEON / FP16 / dotprod flags apply only when the target is aarch64.
+# # On x86 the kernels still compile via the scalar fallback branches.
+# if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm")
+#     add_compile_options(-march=armv8.2-a+fp16+dotprod)
+# endif()
 
 # ── Paths ────────────────────────────────────────────────────────────
 # This CMake expects to live alongside arm-bench:

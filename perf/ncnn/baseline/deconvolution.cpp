@@ -12,14 +12,14 @@
 //      actual NEON kernel cost, dominating the per-binary wall time.
 // The candidate-side perf file uses the same INNER_REPS so candidate vs
 // baseline ms remain apples-to-apples (both report INNER_REPS forwards).
-static constexpr int PERF_INNER_REPS = 50;
+static constexpr int PERF_INNER_REPS = 1;
 
 void perf_deconv_arm_3x3_s1() {
     auto c0 = setup_deconv2d_arm(1, 1, 4, 4, 3, 3, 1, 1);
     auto c1 = setup_deconv2d_arm(3, 4, 5, 5, 3, 3, 1, 1);
     auto c2 = setup_deconv2d_arm( 64,  128, 56, 56, 3, 3, 1, 1);
     auto c3 = setup_deconv2d_arm(128,  256, 28, 28, 3, 3, 1, 1);
-    auto c4 = setup_deconv2d_arm(256,  512, 14, 14, 3, 3, 1, 1);
+    auto c4 = setup_deconv2d_arm(256,  512, 224,224, 3, 3, 1, 1);
     auto c5 = setup_deconv2d_arm(  3,   32, 112, 112, 3, 3, 1, 1);
     auto c6 = setup_deconv2d_arm(512, 1024,  7,  7, 3, 3, 1, 1);
 
@@ -39,7 +39,7 @@ void perf_deconv_arm_3x3_s2() {
     auto c1 = setup_deconv2d_arm(3, 4, 5, 5, 3, 3, 2, 2);
     auto c2 = setup_deconv2d_arm( 64,  128, 28, 28, 3, 3, 2, 2);
     auto c3 = setup_deconv2d_arm(128,  256, 14, 14, 3, 3, 2, 2);
-    auto c4 = setup_deconv2d_arm(256,  512,  7,  7, 3, 3, 2, 2);
+    auto c4 = setup_deconv2d_arm(256,  512, 224,224,  3, 3, 2, 2);
     auto c5 = setup_deconv2d_arm(  3,   32, 56, 56, 3, 3, 2, 2);
     auto c6 = setup_deconv2d_arm(512, 1024,  7,  7, 3, 3, 2, 2);
 
@@ -59,7 +59,7 @@ void perf_deconv_arm_4x4_s1() {
     auto c1 = setup_deconv2d_arm(3, 4, 5, 5, 4, 4, 1, 1);
     auto c2 = setup_deconv2d_arm( 64,  128, 56, 56, 4, 4, 1, 1);
     auto c3 = setup_deconv2d_arm(128,  256, 28, 28, 4, 4, 1, 1);
-    auto c4 = setup_deconv2d_arm(256,  512, 14, 14, 4, 4, 1, 1);
+    auto c4 = setup_deconv2d_arm(256,  512, 224,224,  4, 4, 1, 1);
     auto c5 = setup_deconv2d_arm(  3,   32, 112, 112, 4, 4, 1, 1);
     auto c6 = setup_deconv2d_arm(512, 1024,  7,  7, 4, 4, 1, 1);
 
@@ -79,7 +79,7 @@ void perf_deconv_arm_4x4_s2() {
     auto c1 = setup_deconv2d_arm(2, 4, 4, 4, 4, 4, 2, 2);
     auto c2 = setup_deconv2d_arm( 32,   64, 56, 56, 4, 4, 2, 2);
     auto c3 = setup_deconv2d_arm( 64,  128, 28, 28, 4, 4, 2, 2);
-    auto c4 = setup_deconv2d_arm(128,  256, 14, 14, 4, 4, 2, 2);
+    auto c4 = setup_deconv2d_arm(128,  256, 224,224,  4, 4, 2, 2);
     auto c5 = setup_deconv2d_arm(  3,   32, 56, 56, 4, 4, 2, 2);
     auto c6 = setup_deconv2d_arm(512,  512,  7,  7, 4, 4, 2, 2);
 
